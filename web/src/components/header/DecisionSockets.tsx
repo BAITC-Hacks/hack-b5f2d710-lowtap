@@ -10,6 +10,7 @@ export function DecisionSockets() {
   const remove = useScenario((s) => s.remove)
   const recent = useUi((s) => s.recent)
   const startPlacing = useUi((s) => s.startPlacing)
+  const lang = useUi((s) => s.lang)
   const slots = Array.from({ length: Math.max(RULES.decisions_required, decisions.length) }, (_, i) => decisions[i])
 
   return (
@@ -46,7 +47,7 @@ export function DecisionSockets() {
               title={measure?.type === 'district' ? 'Переставить в другой район' : measure?.name_ru}
               className="num truncate px-2 text-left text-[11px] text-ink disabled:cursor-default"
             >
-              {dec.measure_id} · {districtName(dec.district)}
+              {dec.measure_id} · {districtName(dec.district, lang)}
             </button>
             <button
               type="button"

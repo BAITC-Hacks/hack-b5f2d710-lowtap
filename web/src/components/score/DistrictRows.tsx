@@ -1,4 +1,5 @@
-import { DISTRICTS, RULES } from '../../engine/catalog'
+import { DISTRICTS, RULES, districtName } from '../../engine/catalog'
+import { useUi } from '../../store/ui'
 import type { EngineState } from '../../engine/score'
 import { MAP_DOMAIN, signColor } from '../../lib/colors'
 import { fmt1, fmtShare, fmtSigned } from '../../lib/format'
@@ -8,6 +9,7 @@ const BAR = 60
 
 /** Пять районов по доле населения: pop, bullet-bar D (40–80, тик базы), дельта и крит-пары прямо в строке. */
 export function DistrictRows({ state, base }: { state: EngineState; base: EngineState }) {
+  const lang = useUi((s) => s.lang)
   const rows = [...DISTRICTS].sort((a, b) => b.pop_share - a.pop_share)
   const x = (v: number) => (Math.min(Math.max(v, MAP_DOMAIN[0]), MAP_DOMAIN[1]) - MAP_DOMAIN[0]) / (MAP_DOMAIN[1] - MAP_DOMAIN[0]) * BAR
 
@@ -22,7 +24,7 @@ export function DistrictRows({ state, base }: { state: EngineState; base: Engine
         const closed = critBefore.filter((p) => !critNow.some((q) => q.indicator === p.indicator))
         return (
           <div key={d.id} className="flex h-[22px] items-center gap-1.5 text-[11px]">
-            <span className="w-[60px] truncate">{d.name_ru}</span>
+            <span className="w-[60px] truncate">{districtName(d.id, lang)}</span>
             <span className="num flex w-[26px] flex-col text-[9px] leading-none text-ink-2" title="доля населения — вес района в D_avg">
               {fmtShare(d.pop_share)}
               <span className="mt-0.5 h-[2px] bg-line" style={{ width: `${d.pop_share * 100}%` }} />

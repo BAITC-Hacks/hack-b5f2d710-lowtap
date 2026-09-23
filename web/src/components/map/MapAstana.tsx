@@ -1,11 +1,11 @@
 import { useId, useMemo, useState, type ReactNode } from 'react'
-import { DISTRICT_BY_ID, RULES } from '../../engine/catalog'
+import { DISTRICT_BY_ID, RULES, districtName } from '../../engine/catalog'
 import { BASE_STATE, type EngineState } from '../../engine/score'
 import { useSize } from '../../hooks/useSize'
 import { deltaColor, labelInk, mapColor, signColor } from '../../lib/colors'
 import { fmt1, fmt2, fmtSigned } from '../../lib/format'
 import { districtShapes, fitMap, riverLine, type MapLayout, type Padding } from '../../lib/geo'
-import type { MapIndicator } from '../../store/ui'
+import { useUi, type MapIndicator } from '../../store/ui'
 import { DISTRICT_IDS, INDICATOR_CODES, type DistrictId } from '../../types/data'
 
 const EASE = 'var(--ease-data)'
@@ -200,6 +200,7 @@ interface LabelProps {
 }
 
 function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, indicator, fillColor, blocked }: LabelProps) {
+  const lang = useUi((s) => s.lang)
   const ink = indicator === 'delta' ? 'var(--ink)' : labelInk(value)
   const text = indicator === 'delta' ? fmtSigned(value) : indicator === 'D' ? fmt2(value) : fmt1(value)
   const showDelta = !blocked && delta !== null && Math.abs(delta) >= 0.005
@@ -211,7 +212,7 @@ function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, 
     <g transform={`translate(${at[0]},${at[1]})`} textAnchor="middle">
       {!nameless && (
         <text y={-5} fontSize={11} fontWeight={600} letterSpacing="0.10em" style={{ fill: ink, fontFamily: 'var(--font-sans)', ...halo }}>
-          {DISTRICT_BY_ID.get(id)!.name_ru.toUpperCase()}
+          {districtName(id, lang).toUpperCase()}
         </text>
       )}
       <text

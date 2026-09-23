@@ -46,9 +46,11 @@ export function isDistrictId(value: unknown): value is DistrictId {
   return typeof value === 'string' && (DISTRICT_IDS as readonly string[]).includes(value)
 }
 
-export function districtName(id: string | null): string {
-  if (id === null) return 'город'
-  return DISTRICT_BY_ID.get(id)?.name_ru ?? id
+export function districtName(id: string | null, lang: 'ru' | 'kk' = 'ru'): string {
+  if (id === null) return lang === 'kk' ? 'қала' : 'город'
+  const district = DISTRICT_BY_ID.get(id)
+  if (!district) return id
+  return lang === 'kk' ? district.name_kk : district.name_ru
 }
 
 export function directionName(code: string): string {

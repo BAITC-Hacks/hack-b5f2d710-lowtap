@@ -13,6 +13,8 @@ export function Header() {
   const reset = useScenario((s) => s.reset)
   const cancel = useUi((s) => s.cancel)
   const setScreen = useUi((s) => s.setScreen)
+  const lang = useUi((s) => s.lang)
+  const setLang = useUi((s) => s.setLang)
   const crit = state.nCrit
 
   return (
@@ -34,6 +36,22 @@ export function Header() {
         >
           КРИТ {crit}
         </span>
+        <div className="flex h-[26px] overflow-hidden rounded-chip border border-line" role="radiogroup" aria-label="Язык названий районов">
+          {(['ru', 'kk'] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              role="radio"
+              aria-checked={lang === l}
+              onClick={() => setLang(l)}
+              title={l === 'ru' ? 'Названия районов по-русски' : 'Аудан атаулары қазақша'}
+              className="num px-1.5 text-[10px]"
+              style={{ background: lang === l ? 'var(--accent)' : 'transparent', color: lang === l ? 'var(--panel)' : 'var(--ink-2)' }}
+            >
+              {l === 'ru' ? 'RU' : 'KZ'}
+            </button>
+          ))}
+        </div>
         <Presets />
         <button
           type="button"

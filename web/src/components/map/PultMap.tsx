@@ -99,10 +99,12 @@ export function PultMap() {
               litQuarter={intermediate ? (id) => quarter >= (MEASURE_BY_ID.get(id)?.lag ?? 0) + 1 : undefined}
             />
             {placing && <WhatIfLabels layout={layout} shapes={shapes} options={options} />}
-            {closed.map((p) => {
+            {closed.map((p, i) => {
               const [x, y] = layout.anchors[p.district_id]
+              // Несколько снятых пар одного района — столбиком, а не друг на друге.
+              const row = closed.slice(0, i).filter((q) => q.district_id === p.district_id).length
               return (
-                <g key={`${p.district_id}.${p.indicator}`} transform={`translate(${x},${y + 36})`} pointerEvents="none">
+                <g key={`${p.district_id}.${p.indicator}`} transform={`translate(${x},${y + 36 + row * 20})`} pointerEvents="none">
                   <rect x={-40} y={0} width={80} height={17} rx={3} style={{ fill: 'var(--panel)', stroke: 'var(--up)' }} />
                   <text y={12.5} textAnchor="middle" fontSize={11} style={{ fill: 'var(--up)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
                     {p.indicator} {fmt1(p.now)} ✓
@@ -186,6 +188,7 @@ function DistrictHoverCard({ id, at }: { id: DistrictId; at: [number, number] })
   const { state } = useEvaluation()
   const i = DISTRICT_IDS.indexOf(id)
   const district = DISTRICT_BY_ID.get(id)!
+  const lang = useUi((s) => s.lang)
   const crit = state.critical.filter((p) => p.district_id === id).length
   const weakestK = state.values[i].reduce((best, v, k, row) => (v < row[best] ? k : best), 0)
   const weakest = state.values[i][weakestK]
@@ -195,7 +198,7 @@ function DistrictHoverCard({ id, at }: { id: DistrictId; at: [number, number] })
       className="pointer-events-none absolute z-20 whitespace-nowrap rounded-chip border border-line bg-panel px-2.5 py-1.5 text-[12px]"
       style={{ left: at[0] + 14, top: at[1] + 14 }}
     >
-      <b className="font-semibold">{district.name_ru}</b>
+      <b className="font-semibold">{districtName(id, lang)}</b>
       <span className="num text-ink-2">
         {' '}
         · D {fmt2(state.d[i])} · pop {fmtShare(district.pop_share)} ·{' '}

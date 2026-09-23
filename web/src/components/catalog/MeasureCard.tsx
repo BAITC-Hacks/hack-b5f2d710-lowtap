@@ -2,6 +2,7 @@ import { Check, X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useState } from 'react'
 import { districtName } from '../../engine/catalog'
+import { useUi } from '../../store/ui'
 import type { BlockReason } from '../../engine/validate'
 import { DIRECTION_COLOR } from '../../lib/colors'
 import type { Decision } from '../../types/api'
@@ -26,6 +27,7 @@ interface Props {
 /** Строка каталога 44px; на hover и в режиме постановки раскрывается до 68px с лагом и эффектами. */
 export function MeasureCard({ measure, state, placed, blocked, target, onActivate, onRemove, onHover }: Props) {
   const [hover, setHover] = useState(false)
+  const lang = useUi((s) => s.lang)
   const expanded = hover || state === 'placing'
   const dim = state === 'blocked'
 
@@ -33,7 +35,7 @@ export function MeasureCard({ measure, state, placed, blocked, target, onActivat
   // «5/5» — состояние всего набора, его карточка объясняет при наведении; остальные причины видны всегда.
   if (state === 'blocked' && blocked && (blocked.kind !== 'full' || hover)) subline = { text: blocked.text, color: 'var(--down)' }
   else if (state === 'placing') subline = { text: 'выберите район на карте · Esc', color: 'var(--accent)' }
-  else if (placed) subline = { text: `→ ${districtName(placed.district)}`, color: 'var(--accent)' }
+  else if (placed) subline = { text: `→ ${districtName(placed.district, lang)}`, color: 'var(--accent)' }
   else if (target && measure.type === 'district') subline = { text: `клик → ${target}`, color: 'var(--ink-2)' }
 
   return (

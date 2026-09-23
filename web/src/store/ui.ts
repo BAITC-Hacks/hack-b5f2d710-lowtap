@@ -18,6 +18,9 @@ export interface Ghost {
 
 export type BackendStatus = 'unknown' | 'online' | 'offline'
 
+/** Язык названий районов на карте и в рейке (Есиль / Есіл). */
+export type Lang = 'ru' | 'kk'
+
 interface UiState {
   screen: Screen
   mode: Mode
@@ -31,6 +34,7 @@ interface UiState {
   health: Health | null
   /** Меры, только что изменённые «Применить» рекомендации: гнёзда подсвечены ~1.5 с. */
   recent: string[]
+  lang: Lang
 
   setScreen: (screen: Screen) => void
   startPlacing: (measureId: string) => void
@@ -48,6 +52,7 @@ interface UiState {
   toggleBottomTab: () => void
   setBackend: (status: BackendStatus, health?: Health | null) => void
   flashRecent: (measureIds: string[]) => void
+  setLang: (lang: Lang) => void
 }
 
 export const HORIZON = 8
@@ -63,6 +68,7 @@ export const useUi = create<UiState>()((set, get) => ({
   backend: 'unknown',
   health: null,
   recent: [],
+  lang: 'ru',
 
   setScreen: (screen) => set({ screen, mode: { kind: 'idle' }, ghost: null }),
   startPlacing: (measureId) => set({ mode: { kind: 'placing', measureId }, ghost: null }),
@@ -83,6 +89,7 @@ export const useUi = create<UiState>()((set, get) => ({
   setQuarter: (quarter) => set({ quarter: Math.max(0, Math.min(HORIZON, Math.round(quarter))) }),
   toggleBottomTab: () => set((s) => ({ bottomTab: s.bottomTab === 'timeline' ? 'matrix' : 'timeline' })),
   setBackend: (backend, health) => set((s) => ({ backend, health: health === undefined ? s.health : health })),
+  setLang: (lang) => set({ lang }),
   flashRecent: (recent) => {
     set({ recent })
     setTimeout(() => get().recent === recent && set({ recent: [] }), 1600)

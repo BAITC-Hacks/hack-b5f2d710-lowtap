@@ -193,7 +193,7 @@ function cityImpact(r: EvalResult, decisions: readonly Decision[]): Claim[] {
   const { byDistrict } = spendByDistrict(decisions)
   const untouched = DISTRICT_IDS.filter((id) => byDistrict[id] === 0)
   if (untouched.length && untouched.length < DISTRICT_IDS.length) {
-    out.push(claim(`Районных мер нет в: ${untouched.map(districtName).join(', ')} — там работают только городские программы.`))
+    out.push(claim(`Районных мер нет в: ${untouched.map((id) => districtName(id)).join(', ')} — там работают только городские программы.`))
   }
   return out
 }
