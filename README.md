@@ -6,11 +6,13 @@ AI-симулятор бюджетных решений по районам Ас
 
 Ключевая идея: движок считает, LLM объясняет, числа проверяются. Score, вклады мер и альтернативы вычисляет детерминированный движок; языковая модель получает только таблицу фактов, ссылается на них и советует; каждое десятичное число в её записке сверяется с движком, каждая рекомендация пересчитывается сервером. Без API-ключа и без сети приложение работает полностью.
 
-![Сценарий: база, предпросмотр M7, пресет «Пример ТЗ», таймлайн Q4 и Q8, Вердикт, Сравнение](docs/demo.gif)
+![Актуальный интерфейс: фон карты, выбор M7, пресет «Пример ТЗ», приближение карты, таймлайн Q4 и Q8, Вердикт, Сравнение](docs/demo.gif)
+
+Карту можно перемещать мышью и плавно приближать колёсиком; кнопка центрирования возвращает исходный вид. Скриншоты и демо сняты в локальном режиме без бэкенда; записка Вердикта сформирована по шаблону на числах движка.
 
 | Пульт | Вердикт | Сравнение |
 |---|---|---|
-| ![Пульт](docs/screenshots/f2-pult-pins.png) | ![Вердикт](docs/screenshots/verdict-server-guard.png) | ![Сравнение](docs/screenshots/f4-compare-1280.png) |
+| ![Пульт с фоном карты и управлением масштабом](docs/screenshots/f2-pult-pins.png) | ![Вердикт в локальном режиме](docs/screenshots/verdict-offline.png) | ![Сравнение сценариев](docs/screenshots/f4-compare-1280.png) |
 
 ## Быстрый старт
 
@@ -89,7 +91,7 @@ cp .env.example .env
 | Команда | Ожидаемый результат |
 |---|---|
 | `cd web; npm test` | **143 passed**: эталоны 52.558 / 56.543 / 55.667 / 54.009 / 52.041 / 57.237, 12 невалидных наборов дают ровно свой код нарушения, 71 кейс `golden.json` совпадает с Python до 1e-6 |
-| `cd web; npx playwright install chromium; npm run e2e` | 2 passed: пресет «Пример ТЗ» даёт 56.54 и 95/100, невалидный бюджет даёт причину вместо Score. Порт задаётся переменной `E2E_PORT` (по умолчанию 5173) |
+| `cd web; npx playwright install chromium; npm run e2e` | 8 passed: пресет «Пример ТЗ» даёт 56.54 и 95/100, невалидный бюджет даёт причину вместо Score; проверены масштабирование, перетаскивание, центрирование и взаимодействие с картой. Порт задаётся переменной `E2E_PORT` (по умолчанию 5173) |
 | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | **298 passed**, 1 deselected (полный перебор запускается отдельно: `-m slow`) |
 | `cd backend; ..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json` | `Score 56.543`, `baseline 52.558`, `cost 95`, `n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1` |
 | `docker compose up --build -d --wait`, затем `py -3 scripts/container_smoke.py` | health; 5 районов и 14 мер; распределение 694 395 / 20 003; example 56.543 / 95 / 0; HTTP 422; SSE; HTML; 5 из 5 demo-ответов из кэша |
@@ -238,7 +240,7 @@ web/
   src/components/   map, catalog, score, header, bottom, verdict
   src/store/        scenario (набор и undo), ui (экран, режим, квартал), analysis
   src/lib/          api (офлайн-фолбэк), sse, geo, format, permalink, verify
-  e2e/              Playwright smoke
+  e2e/              Playwright: smoke и навигация карты
 Dockerfile, docker-compose.yml, .github/workflows/ci.yml
 ```
 
@@ -250,12 +252,12 @@ Dockerfile, docker-compose.yml, .github/workflows/ci.yml
 | LLM | Официальный OpenAI Python SDK (Responses API, structured outputs, function tools), цепочка llm / cache / rules |
 | Фронт | React 19, Vite 8, TypeScript 5.9, Tailwind 4 (токены), motion, zustand, d3-geo / d3-scale / d3-shape / d3-interpolate, lucide-react |
 | Шрифты (в бандле, офлайн) | Unbounded, Golos Text, JetBrains Mono |
-| Тесты | vitest (движок, паритет, валидатор, записка, SSE), Playwright smoke, pytest |
+| Тесты | vitest (движок, паритет, валидатор, записка, SSE), Playwright (smoke и навигация карты), pytest |
 | Сборка и CI | Docker (multi-stage), Docker Compose, GitHub Actions |
 
 ## Тесты
 
-Бэкенд: 298 тестов pytest без сети (движок, валидатор, Шепли, факты, поиск, API, SSE, кэш, guard, цикл агента, таймауты, mini-eval); один медленный тест полного перебора запускается явно: `python -m pytest -q backend/tests -m slow`. Фронт: 143 теста vitest, из них 71 кейс паритета с Python, и 2 e2e-теста Playwright. Скрипт `scripts/ai_eval.py` независимо проверяет пять пресетов: валидность рекомендаций, наличие evidence, подтверждение чисел, объём текста; результаты лежат в `data/cache/eval/`.
+Бэкенд: 298 тестов pytest без сети (движок, валидатор, Шепли, факты, поиск, API, SSE, кэш, guard, цикл агента, таймауты, mini-eval); один медленный тест полного перебора запускается явно: `python -m pytest -q backend/tests -m slow`. Фронт: 143 теста vitest, из них 71 кейс паритета с Python, и 8 e2e-тестов Playwright. Скрипт `scripts/ai_eval.py` независимо проверяет пять пресетов: валидность рекомендаций, наличие evidence, подтверждение чисел, объём текста; результаты лежат в `data/cache/eval/`.
 
 CI (`.github/workflows/ci.yml`) прогоняет pytest, Ruff, `npm ci`, `npm test`, `npm run build`, затем собирает Compose и выполняет `scripts/container_smoke.py`; ключей в CI нет. В организации хакатона GitHub Actions отключены на уровне биллинга, поэтому этот workflow на GitHub не запускался; все проверки из таблицы выше выполнены локально и на чистых клонах, их и стоит использовать для оценки.
 
