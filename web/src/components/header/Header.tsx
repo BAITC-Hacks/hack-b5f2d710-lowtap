@@ -19,7 +19,7 @@ export function Header() {
 
   return (
     <header className="col-span-3 flex items-center gap-4 border-b border-line bg-panel px-4">
-      <div className="w-[150px] shrink-0 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Пульт акима</div>
+      <div className="w-[150px] shrink-0 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Аким на 5 часов</div>
       <div className="flex flex-1 justify-center">
         <DecisionSockets />
       </div>
