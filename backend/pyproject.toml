@@ -1,0 +1,17 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-m 'not slow'"
+markers = ["slow: exhaustive enumeration (run with -m slow)"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# The task requires configuring UTF-8 before application imports.
+"app/main.py" = ["E402"]
+"app/cli.py" = ["E402"]

@@ -1,0 +1,9 @@
+# Direct dependencies, installed and import-checked on CPython 3.14.7 (Windows).
+fastapi==0.141.1
+pydantic==2.13.5
+uvicorn==0.53.0
+pytest==9.1.1
+httpx==0.28.1
+python-dotenv==1.2.3
+openai==3.19.0
+ruff==0.16.8
