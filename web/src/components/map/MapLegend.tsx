@@ -1,5 +1,5 @@
-import { RULES } from '../../engine/catalog'
-import { MAP_STEPS } from '../../lib/colors'
+import { DISTRICTS, RULES, districtName } from '../../engine/catalog'
+import { DISTRICT_COLOR, MAP_STEPS } from '../../lib/colors'
 import { useUi, type MapIndicator } from '../../store/ui'
 import { INDICATOR_CODES } from '../../types/data'
 
@@ -13,6 +13,7 @@ const OPTIONS: { key: MapIndicator; label: string; title: string }[] = [
 export function MapLegend() {
   const indicator = useUi((s) => s.indicator)
   const setIndicator = useUi((s) => s.setIndicator)
+  const lang = useUi((s) => s.lang)
 
   return (
     <div className="absolute bottom-3 left-3 flex flex-col gap-1.5 rounded-chip border border-line bg-panel px-2 py-1.5">
@@ -42,7 +43,19 @@ export function MapLegend() {
         })}
       </div>
       <div className="flex items-end gap-3">
-        {indicator === 'delta' ? (
+        {indicator === 'D' ? (
+          <div className="flex flex-wrap gap-x-2.5 gap-y-1" style={{ maxWidth: 230 }}>
+            {DISTRICTS.map((d) => (
+              <span key={d.id} className="flex items-center gap-1 text-[10px] text-ink-2">
+                <span
+                  className="h-2.5 w-2.5 rounded-[2px]"
+                  style={{ background: DISTRICT_COLOR[d.id].fill, outline: `1px solid ${DISTRICT_COLOR[d.id].line}` }}
+                />
+                {districtName(d.id, lang)}
+              </span>
+            ))}
+          </div>
+        ) : indicator === 'delta' ? (
           <div className="flex flex-col gap-0.5">
             <div className="h-2 w-[150px] rounded-[2px]" style={{ background: 'linear-gradient(90deg, #C2452F, #FFFFFF, #1F8A64)', outline: '1px solid var(--line)' }} />
             <div className="num flex justify-between text-[9px] text-ink-2">

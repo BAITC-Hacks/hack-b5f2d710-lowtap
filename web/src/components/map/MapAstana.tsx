@@ -2,7 +2,7 @@ import { useId, useMemo, useState, type ReactNode } from 'react'
 import { DISTRICT_BY_ID, RULES, districtName } from '../../engine/catalog'
 import { BASE_STATE, type EngineState } from '../../engine/score'
 import { useSize } from '../../hooks/useSize'
-import { deltaColor, labelInk, mapColor, signColor } from '../../lib/colors'
+import { DISTRICT_COLOR, deltaColor, labelInk, mapColor, signColor } from '../../lib/colors'
 import { fmt1, fmt2, fmtSigned } from '../../lib/format'
 import { districtShapes, fitMap, riverLine, type MapLayout, type Padding } from '../../lib/geo'
 import { useUi, type MapIndicator } from '../../store/ui'
@@ -24,6 +24,8 @@ export interface MapAstanaProps {
   highlight?: DistrictId | null
   /** Без дельта-чипов под числами (их место занимают what-if ярлыки). */
   hideDelta?: boolean
+  /** В режиме D — свой цвет у каждого района вместо шкалы (карта Пульта); мини-карты остаются в шкале. */
+  districtColors?: boolean
   selected?: DistrictId | null
   /** Районы, куда ставить нельзя (конфликт «в одном районе»): штриховка и блок клика. */
   blocked?: Partial<Record<DistrictId, string>>
@@ -52,6 +54,7 @@ export function MapAstana({
   labels = compact ? 'none' : 'full',
   highlight = null,
   hideDelta = false,
+  districtColors = false,
   selected = null,
   blocked = {},
   cursor = 'default',
@@ -72,7 +75,9 @@ export function MapAstana({
   const k = indicator === 'D' || indicator === 'delta' ? -1 : INDICATOR_CODES.indexOf(indicator)
   const critical = (i: number) =>
     k >= 0 ? state.values[i][k] < RULES.critical_threshold : state.critical.some((p) => p.district_id === DISTRICT_IDS[i])
+  const categorical = districtColors && indicator === 'D'
   const fill = (i: number) => {
+    if (categorical) return DISTRICT_COLOR[DISTRICT_IDS[i]].fill
     const v = districtValue(state, base, indicator, i)
     return indicator === 'delta' ? deltaColor(v) : mapColor(v)
   }
@@ -106,8 +111,8 @@ export function MapAstana({
                   aria-label={interactive ? `${DISTRICT_BY_ID.get(s.id)!.name_ru}, D ${fmt2(state.d[i])}` : undefined}
                   style={{
                     fill: fill(i),
-                    stroke: 'var(--panel)',
-                    strokeWidth: 1,
+                    stroke: categorical ? DISTRICT_COLOR[s.id].line : 'var(--panel)',
+                    strokeWidth: categorical ? 1.5 : 1,
                     transition: `fill 300ms ${EASE}`,
                     cursor: interactive ? (blocked[s.id] ? 'not-allowed' : cursor === 'crosshair' ? 'crosshair' : 'pointer') : undefined,
                   }}

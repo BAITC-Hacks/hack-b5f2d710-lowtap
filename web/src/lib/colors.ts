@@ -2,7 +2,7 @@
 
 import { interpolateRgb } from 'd3-interpolate'
 import { scaleDiverging, scaleQuantize } from 'd3-scale'
-import type { DirectionCode } from '../types/data'
+import type { DirectionCode, DistrictId } from '../types/data'
 
 export const DIRECTION_COLOR: Record<DirectionCode, string> = {
   T: 'var(--dir-t)',
@@ -10,6 +10,15 @@ export const DIRECTION_COLOR: Record<DirectionCode, string> = {
   S: 'var(--dir-s)',
   B: 'var(--dir-b)',
   C: 'var(--dir-c)',
+}
+
+/** Свой цвет каждого района (заливка карты Пульта в режиме D) и тон обводки. */
+export const DISTRICT_COLOR: Record<DistrictId, { fill: string; line: string }> = {
+  esil: { fill: 'var(--district-esil)', line: 'var(--district-esil-line)' },
+  almaty: { fill: 'var(--district-almaty)', line: 'var(--district-almaty-line)' },
+  saryarka: { fill: 'var(--district-saryarka)', line: 'var(--district-saryarka-line)' },
+  baikonur: { fill: 'var(--district-baikonur)', line: 'var(--district-baikonur-line)' },
+  nura: { fill: 'var(--district-nura)', line: 'var(--district-nura-line)' },
 }
 
 /** Последовательная шкала карты, домен 40–80 фиксирован для всех экранов и сценариев. */

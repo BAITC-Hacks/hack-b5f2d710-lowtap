@@ -85,13 +85,13 @@ export function PultMap() {
         selected={selected}
         blocked={blocked}
         hideDelta={Boolean(placing)}
+        districtColors
         cursor={placing ? 'crosshair' : 'default'}
         onDistrictClick={click}
         onDistrictHover={hover}
         padding={[56, 40, 80, 40]}
         overlay={(layout) => (
           <>
-            <Landmark at={layout.projection(BAITEREK)} />
             <Pins
               layout={layout}
               shapes={shapes}
@@ -128,29 +128,6 @@ export function PultMap() {
       {popover && <PinPopover pin={popover} onClose={() => setPopover(null)} />}
       <MapLegend />
     </div>
-  )
-}
-
-/** Байтерек — ориентир, по которому жюри узнаёт город (левый берег, у Ишима). */
-const BAITEREK: [number, number] = [71.4305, 51.1283]
-
-function Landmark({ at }: { at: [number, number] | null }) {
-  if (!at) return null
-  const [x, y] = at
-  return (
-    <g transform={`translate(${x},${y})`} pointerEvents="none" aria-label="Байтерек">
-      <path d="M0 -6 L4 0 L0 6 L-4 0 Z" style={{ fill: 'var(--ink)', stroke: 'var(--panel)', strokeWidth: 1.5 }} />
-      <text
-        x={8}
-        y={3.5}
-        fontSize={10}
-        fontWeight={600}
-        letterSpacing="0.06em"
-        style={{ fill: 'var(--ink)', fontFamily: 'var(--font-sans)', paintOrder: 'stroke', stroke: 'var(--panel)', strokeWidth: 3, strokeLinejoin: 'round' }}
-      >
-        БАЙТЕРЕК
-      </text>
-    </g>
   )
 }
 

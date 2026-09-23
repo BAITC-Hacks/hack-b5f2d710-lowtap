@@ -32,6 +32,18 @@
   --dir-b: #8a63c9;
   --dir-c: #5f7c8a;
 
+  /* Свой цвет у каждого района на карте Пульта: заливка и обводка */
+  --district-esil: #86cbc3;
+  --district-esil-line: #2e8f84;
+  --district-almaty: #9fc2e7;
+  --district-almaty-line: #3f7fc4;
+  --district-saryarka: #e9cf94;
+  --district-saryarka-line: #b08a3a;
+  --district-baikonur: #afd69f;
+  --district-baikonur-line: #5e9c4e;
+  --district-nura: #f3c2a7;
+  --district-nura-line: #c9795a;
+
   --ease-data: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   color-scheme: light;
