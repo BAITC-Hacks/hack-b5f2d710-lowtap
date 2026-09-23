@@ -122,7 +122,7 @@ cd backend
 ../.venv/bin/python -m app.cli --version
 ```
 
-На этапе B0 ожидается: **10 passed** без сети из корня и из `backend/`,
+На этапе B0 ожидается: **12 passed** без сети из корня и из `backend/`,
 Ruff check — `All checks passed!`, format check — `11 files already formatted`,
 CLI печатает `0.1.0`. Маркер `slow` зарегистрирован; обычный pytest исключает
 его, полный перебор B1 запускается явно через `python -m pytest -q -m slow`.
@@ -130,11 +130,23 @@ CLI печатает `0.1.0`. Маркер `slow` зарегистрирован
 
 При приёмке B0 на Windows проверен живой uvicorn: `/api/health` и `/docs`
 отвечают HTTP 200; health содержит 9 полей, `data_hash="1172683703cf"`,
-`provider="rules"`, `has_key=false`, `model_status="unchecked"`.
-Локальный `.env` существует, но ключ и модель не заполнены. Поэтому живые
-`models.list()` и короткий `responses.create()` не выполнялись; доступные
-аккаунту модели ещё не подтверждены. Для проверки B3 нужны ключ и выбранные
-модели в локальном `.env`.
+`provider="rules"`, `has_key=false`, `model_status="unchecked"` без ключа.
+
+После добавления ключа выполнена живая проверка B0:
+`models.list()` вернул **128 моделей**, в том числе `gpt-4.1-mini`,
+`gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.5`, `gpt-6-sol` и `gpt-6-luna`.
+Короткий `responses.create()` с `gpt-4.1-mini` вернул `completed` и `OK`
+(12 входных и 2 выходных токена; фактический ID `gpt-4.1-mini-2025-04-14`).
+При временном `OPENAI_MODEL=gpt-4.1-mini` живой health вернул HTTP 200,
+`provider="llm"`, `has_key=true`, `model_status="ok"`.
+Модель была задана только в окружении проверки: значения `OPENAI_MODEL`
+и `OPENAI_MODEL_FAST` в локальном `.env` не менялись и пока пустые.
+Список моделей подтверждает видимость ID; генерация проверена только на
+указанной модели. Полный отчёт и его расход токенов проверяются в B3–B4.
+
+Пустой `OPENAI_BASE_URL` из `.env.example` явно заменяется стандартным HTTPS
+адресом при создании SDK-клиента: иначе SDK повторно считывает пустую переменную
+окружения и запрос завершается `UnsupportedProtocol`.
 
 Официальный Python SDK используется согласно
 [документации OpenAI: список моделей](https://developers.openai.com/api/reference/python/resources/models/methods/list)

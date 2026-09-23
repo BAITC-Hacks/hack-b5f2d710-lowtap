@@ -16,7 +16,8 @@ async def check_model(settings: Settings) -> ModelStatus:
     try:
         async with AsyncOpenAI(
             api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
+            # None makes the SDK reread OPENAI_BASE_URL, including a blank .env value.
+            base_url=settings.openai_base_url or "https://api.openai.com/v1",
             timeout=120.0,
             max_retries=1,
         ) as client:

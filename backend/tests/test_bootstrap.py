@@ -7,7 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
-from openai import OpenAIError
+from httpx import AsyncClient, MockTransport
+from openai import AsyncOpenAI, OpenAIError
 
 from app import __version__
 from app.config import Settings
@@ -103,6 +104,49 @@ def test_startup_model_status_is_nonfatal_and_secret_safe(
     list_models.assert_awaited_once()
     assert FAKE_KEY not in response.text
     assert FAKE_KEY not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("configured_url", "expected_url"),
+    [
+        ("", "https://api.openai.com/v1/"),
+        ("https://llm.example.test/custom/v1", "https://llm.example.test/custom/v1/"),
+    ],
+    ids=["blank-env-uses-default", "custom-url-preserved"],
+)
+def test_model_probe_uses_valid_sdk_base_url(configured_url, expected_url, monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", configured_url)
+    settings = Settings(
+        openai_api_key=FAKE_KEY,
+        openai_model="test-main",
+        openai_base_url=configured_url or None,
+    )
+    observed_urls = []
+    page = MagicMock()
+    page.__aiter__.return_value = [SimpleNamespace(id="test-main")]
+    list_models = AsyncMock(return_value=page)
+
+    def reject_network(request):
+        raise AssertionError("SDK transport must not be called in this test")
+
+    def make_real_client(**kwargs):
+        # Keep the real SDK constructor: it rereads OPENAI_BASE_URL when given None.
+        sdk_client = AsyncOpenAI(
+            **kwargs, http_client=AsyncClient(transport=MockTransport(reject_network))
+        )
+        observed_urls.append(str(sdk_client.base_url))
+        monkeypatch.setattr(sdk_client.models, "list", list_models)
+        return sdk_client
+
+    monkeypatch.setattr("app.ai.probe.AsyncOpenAI", make_real_client)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.get("/api/health")
+
+    assert response.status_code == 200
+    assert response.json()["model_status"] == "ok"
+    assert observed_urls == [expected_url]
+    list_models.assert_awaited_once()
 
 
 @pytest.mark.parametrize(
