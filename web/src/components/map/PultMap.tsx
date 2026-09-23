@@ -10,7 +10,7 @@ import { useDisplayState } from '../../hooks/useDisplayState'
 import { useGhost } from '../../hooks/useGhost'
 import { useSize } from '../../hooks/useSize'
 import { fmt1, fmt2, fmtShare } from '../../lib/format'
-import { districtShapes, type Padding } from '../../lib/geo'
+import { anchored, districtShapes, type Padding } from '../../lib/geo'
 import { useScenario } from '../../store/scenario'
 import { useUi } from '../../store/ui'
 import { DISTRICT_IDS, INDICATOR_CODES, type DistrictId } from '../../types/data'
@@ -118,7 +118,7 @@ export function PultMap() {
               decisions={decisions}
               onPinClick={placing || intermediate ? undefined : (pin) => {
                 const view = getView()
-                setPopover({ ...pin, x: pin.x * view.scale + view.x, y: pin.y * view.scale + view.y })
+                setPopover({ ...pin, x: pin.x * view.scale + view.x + pin.ox, y: pin.y * view.scale + view.y + pin.oy })
               }}
               litQuarter={intermediate ? (id) => quarter >= (MEASURE_BY_ID.get(id)?.lag ?? 0) + 1 : undefined}
             />
@@ -128,11 +128,13 @@ export function PultMap() {
               // Несколько снятых пар одного района — столбиком, а не друг на друге.
               const row = closed.slice(0, i).filter((q) => q.district_id === p.district_id).length
               return (
-                <g key={`${p.district_id}.${p.indicator}`} transform={`translate(${x},${y + 42 + row * 20})`} pointerEvents="none">
+                <g key={`${p.district_id}.${p.indicator}`} style={anchored(x, y)} pointerEvents="none">
+                  <g transform={`translate(0,${42 + row * 20})`}>
                   <rect x={-40} y={0} width={80} height={17} rx={3} style={{ fill: 'var(--panel)', stroke: 'var(--up)' }} />
                   <text y={12.5} textAnchor="middle" fontSize={11} style={{ fill: 'var(--up)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
                     {p.indicator} {fmt1(p.now)} ✓
                   </text>
+                  </g>
                 </g>
               )
             })}

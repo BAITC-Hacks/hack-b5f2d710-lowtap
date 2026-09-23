@@ -123,6 +123,17 @@ export function riverLine(shapes: DistrictShape[]): Feature<MultiLineString> {
   return { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines } }
 }
 
+/**
+ * Подписи и пины при зуме карты сохраняют экранный размер: группа стоит в точке карты,
+ * а масштаб камеры компенсируется переменной --map-inv (её ставит useMapNavigation).
+ */
+export function anchored(x: number, y: number) {
+  return { transform: `translate(${x}px, ${y}px) scale(var(--map-inv, 1))` }
+}
+
+/** Толщина линии в экранных пикселях независимо от зума. */
+export const screenStroke = (px: number) => `calc(${px}px * var(--map-inv, 1))`
+
 /** Смещения пинов у одного центроида: 0 / +26 / −26 px по x, дальше — следующий ряд. */
 export function pinOffset(index: number): [number, number] {
   const column = [0, 26, -26][index % 3]

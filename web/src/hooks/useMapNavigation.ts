@@ -19,7 +19,10 @@ function bounded(view: MapView): MapView {
   }
 }
 
-/** Transform the composited HTML layer; scaling an SVG group repaints its patterns every frame. */
+/**
+ * Transform the composited HTML layer. --map-inv lets labels, pins and strokes keep their
+ * screen size (see anchored/screenStroke in lib/geo), so zooming enlarges the city, not the text.
+ */
 export function useMapNavigation(width: number, height: number, enabled: boolean, onNavigate?: () => void) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const worldRef = useRef<HTMLDivElement>(null)
@@ -45,6 +48,7 @@ export function useMapNavigation(width: number, height: number, enabled: boolean
     const view = getView()
     if (worldRef.current) {
       worldRef.current.style.transform = `translate3d(${view.x}px,${view.y}px,0) scale(${view.scale})`
+      worldRef.current.style.setProperty('--map-inv', String(1 / view.scale))
     }
   }
 
@@ -58,12 +62,6 @@ export function useMapNavigation(width: number, height: number, enabled: boolean
   function stop() {
     if (frame.current !== null) cancelAnimationFrame(frame.current)
     frame.current = null
-  }
-
-  function cacheLayer(active: boolean) {
-    // Reuse the raster while moving, then let the browser redraw once at the
-    // final scale so district names and borders become sharp again.
-    if (worldRef.current) worldRef.current.style.willChange = active ? 'transform' : 'auto'
   }
 
   function tick(now: number) {
@@ -85,12 +83,10 @@ export function useMapNavigation(width: number, height: number, enabled: boolean
     current.current = settled ? goal : next
     paint()
     frame.current = settled ? null : requestAnimationFrame(tick)
-    if (settled && !gesture.current) cacheLayer(false)
   }
 
   function requestView(next: MapView) {
     target.current = bounded(next)
-    cacheLayer(true)
     if (frame.current !== null) return
     lastTime.current = performance.now()
     frame.current = requestAnimationFrame(tick)
@@ -113,7 +109,6 @@ export function useMapNavigation(width: number, height: number, enabled: boolean
     if (!enabled) {
       stop()
       current.current = target.current = INITIAL
-      cacheLayer(false)
     }
     paint()
   }, [width, height, enabled])
@@ -155,7 +150,6 @@ export function useMapNavigation(width: number, height: number, enabled: boolean
     }
     suppressClick.current = active.moved
     gesture.current = null
-    cacheLayer(false)
     setDragging(false)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }

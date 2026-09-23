@@ -6,10 +6,10 @@ import { useMapNavigation, type MapView } from '../../hooks/useMapNavigation'
 import { useSize } from '../../hooks/useSize'
 import { DISTRICT_COLOR, deltaColor, labelInk, mapColor, signColor } from '../../lib/colors'
 import { fmt1, fmt2, fmtSigned } from '../../lib/format'
-import { districtShapes, fitMap, riverLine, type MapLayout, type Padding } from '../../lib/geo'
+import { anchored, districtShapes, fitMap, riverLine, screenStroke, type MapLayout, type Padding } from '../../lib/geo'
 import { useUi, type MapIndicator } from '../../store/ui'
 import { DISTRICT_IDS, INDICATOR_CODES, type DistrictId } from '../../types/data'
-import { MapLandscape } from './MapLandscape'
+import { MapLandscapeImage } from './MapLandscape'
 
 const EASE = 'var(--ease-data)'
 
@@ -122,11 +122,13 @@ export function MapAstana({
             cursor: dragging ? 'grabbing' : navigable && cursor === 'default' ? 'grab' : cursor,
             touchAction: navigable ? 'none' : undefined,
             userSelect: 'none',
+            background: navigable && !compact ? '#c9dfa8' : undefined,
           }}
           {...handlers}
         >
           <div ref={worldRef} data-testid="map-world" className="absolute inset-0" style={{ transformOrigin: '0 0' }}>
-            <svg width={width} height={height} role="img" aria-label="Карта районов Астаны" style={{ overflow: 'visible' }}>
+            {navigable && !compact && <MapLandscapeImage />}
+            <svg className="absolute inset-0" width={width} height={height} role="img" aria-label="Карта районов Астаны" style={{ overflow: 'visible' }}>
               <defs>
                 <pattern id={hatchId} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
                   <line x1="0" y1="0" x2="0" y2="6" style={{ stroke: 'var(--down)', strokeWidth: 2 }} />
@@ -134,8 +136,6 @@ export function MapAstana({
               </defs>
 
               <g>
-                {navigable && !compact && <MapLandscape width={width} height={height} />}
-
                 {/* districts */}
                 <g>
                   {paths.districts.map((s, i) => (
@@ -150,7 +150,7 @@ export function MapAstana({
                         style={{
                           fill: fill(i),
                           stroke: categorical ? DISTRICT_COLOR[s.id].line : 'var(--panel)',
-                          strokeWidth: categorical ? 1.5 : 1,
+                          strokeWidth: screenStroke(categorical ? 1.5 : 1),
                           transition: `fill 300ms ${EASE}`,
                           // SVG's native focus ring outlines the bounding rectangle.
                           // Keyboard focus is drawn along the district contour below.
@@ -169,8 +169,8 @@ export function MapAstana({
                   ))}
                 </g>
 
-                {/* hatch (<40): пульсирует, пока в городе есть критические пары */}
-                <g className={state.nCrit > 0 ? 'crit-pulse' : undefined} pointerEvents="none">
+                {/* hatch (<40); без CSS-пульса: анимация внутри SVG перерисовывала бы карту каждый кадр */}
+                <g pointerEvents="none">
                   {paths.districts.map((s, i) => (
                     <path
                       key={s.id}
@@ -185,7 +185,7 @@ export function MapAstana({
                 <path
                   d={paths.river}
                   pointerEvents="none"
-                  style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 1.5, opacity: 0.5, strokeLinejoin: 'round' }}
+                  style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: screenStroke(1.5), opacity: 0.5, strokeLinejoin: 'round' }}
                 />
 
                 {/* selection / hover / ghost / highlight */}
@@ -198,7 +198,7 @@ export function MapAstana({
                         style={{
                           fill: 'none',
                           stroke: 'var(--accent)',
-                          strokeWidth: s.id === selected || s.id === highlight || s.id === focused ? 2.5 : 1.5,
+                          strokeWidth: screenStroke(s.id === selected || s.id === highlight || s.id === focused ? 2.5 : 1.5),
                           strokeDasharray: ghostChanged(i) && s.id !== selected ? '4 2' : undefined,
                         }}
                       />
@@ -285,7 +285,7 @@ function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, 
   const halo = { paintOrder: 'stroke' as const, stroke: fillColor, strokeWidth: 3, strokeLinejoin: 'round' as const }
 
   return (
-    <g transform={`translate(${at[0]},${at[1]})`} textAnchor="middle">
+    <g style={anchored(at[0], at[1])} textAnchor="middle">
       {!nameless && (
         <text y={-5} fontSize={11} fontWeight={600} letterSpacing="0.10em" style={{ fill: ink, fontFamily: 'var(--font-sans)', ...halo }}>
           {districtName(id, lang).toUpperCase()}
@@ -342,7 +342,7 @@ function DistrictPlate({ at, value, delta, ghost = false, critical = false, indi
   const valueColor = indicator === 'delta' ? signColor(value) : 'var(--ink)'
 
   return (
-    <g transform={`translate(${at[0]},${at[1]})`} textAnchor="middle">
+    <g style={anchored(at[0], at[1])} textAnchor="middle">
       <rect
         x={-width / 2}
         y={PLATE_TOP}

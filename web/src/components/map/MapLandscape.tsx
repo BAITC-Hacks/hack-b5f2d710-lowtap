@@ -1,4 +1,6 @@
-import { memo, useId } from 'react'
+import { memo, useEffect, useId, useRef } from 'react'
+import { flushSync } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 
 /** Stable positions keep the illustration still when the scenario or viewport updates. */
 function randomSequence(seed: number) {
@@ -56,7 +58,7 @@ const seamlessGrass = wrapTileEdges(grass, 18)
 const river = 'M 120,-160 C 135,-80 161,-44 196,15 C 230,69 247,122 207,163 C 172,199 132,203 128,254 C 123,304 97,318 59,302 C 11,280 -20,326 -79,362 M 617,433 C 661,478 633,529 687,544 C 736,558 775,558 794,609 C 812,657 767,681 783,724 C 799,767 866,766 884,814 C 900,859 950,877 985,907 C 1039,953 1064,997 1100,1090'
 
 /** Decorative surroundings only; all district shapes and their interactions stay above it. */
-export const MapLandscape = memo(function MapLandscape({ width, height }: { width: number; height: number }) {
+const MapLandscape = memo(function MapLandscape({ width, height }: { width: number; height: number }) {
   const id = `landscape-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const treeId = (kind: number) => `${id}-tree-${kind}`
 
@@ -151,3 +153,89 @@ export const MapLandscape = memo(function MapLandscape({ width, height }: { widt
     </g>
   )
 })
+
+/**
+ * The landscape area in 1000×900 map units: the viewport plus the furthest pan/zoom-out
+ * reach of useMapNavigation (0.6 of the viewport on every side).
+ */
+const AREA = { x: -600, y: -540, width: 2200, height: 1980 }
+
+let raster: Promise<HTMLCanvasElement> | null = null
+
+/**
+ * Rasterize the illustration once per page: ~900 SVG nodes with patterns are far too heavy
+ * to repaint on every zoom frame, while a bitmap costs one texture draw.
+ */
+function landscapeRaster(): Promise<HTMLCanvasElement> {
+  raster ??= new Promise<string>((resolve) => {
+    // flushSync outside React's own render/commit phase.
+    setTimeout(() => {
+      const host = document.createElement('div')
+      const root = createRoot(host)
+      flushSync(() =>
+        root.render(
+          <svg width={AREA.width} height={AREA.height} viewBox={`${AREA.x} ${AREA.y} ${AREA.width} ${AREA.height}`}>
+            <MapLandscape width={1000} height={900} />
+          </svg>,
+        ),
+      )
+      const markup = new XMLSerializer().serializeToString(host.firstElementChild!)
+      root.unmount()
+      resolve(markup)
+    })
+  })
+    .then(async (markup) => {
+      const image = new Image()
+      image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`
+      await image.decode()
+      const density = Math.min(1.5, 1.2 * (window.devicePixelRatio || 1))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(AREA.width * density)
+      canvas.height = Math.round(AREA.height * density)
+      canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height)
+      return canvas
+    })
+    .catch((error: unknown) => {
+      raster = null
+      throw error
+    })
+  return raster
+}
+
+/** Decorative surroundings as a bitmap, stretched to the map box like the vector original. */
+export function MapLandscapeImage() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    let alive = true
+    landscapeRaster()
+      .then((source) => {
+        const canvas = canvasRef.current
+        if (!alive || !canvas) return
+        canvas.width = source.width
+        canvas.height = source.height
+        canvas.getContext('2d')!.drawImage(source, 0, 0)
+        canvas.style.opacity = '1'
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      data-testid="map-landscape"
+      aria-hidden="true"
+      className="pointer-events-none absolute"
+      style={{
+        left: `${(AREA.x / 1000) * 100}%`,
+        top: `${(AREA.y / 900) * 100}%`,
+        width: `${(AREA.width / 1000) * 100}%`,
+        height: `${(AREA.height / 900) * 100}%`,
+        opacity: 0,
+        transition: 'opacity 200ms ease-out',
+      }}
+    />
+  )
+}
