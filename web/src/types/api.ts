@@ -1,4 +1,4 @@
-// Контракт с бэкендом (docs/tasks/CODEX_BACKEND.md §7), описан вручную.
+// Контракт с бэкендом (docs/ARCHITECTURE.md, «API и объяснения»), описан вручную.
 // Когда бэкенд поднимет /api/openapi.json, эти типы заменяются сгенерированными:
 //   npm run gen:api   (openapi-typescript → src/types/api.gen.ts)
 

@@ -142,21 +142,6 @@
   }
 }
 
-/* Единственный idle-цикл: штриховка критических пар «дышит», пока N_crit > 0. */
-@keyframes crit-pulse {
-  0%,
-  100% {
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.crit-pulse {
-  animation: crit-pulse 3s ease-in-out infinite;
-}
-
 /* Перерасход бюджета: полоса вспыхивает один раз, без модалки. */
 @keyframes budget-flash {
   0% {

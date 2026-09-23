@@ -1,4 +1,4 @@
-// Формула ТЗ, зеркало Python-движка (docs/tasks/CODEX_BACKEND.md §5):
+// Формула ТЗ, зеркало Python-движка (docs/ARCHITECTURE.md, «Детерминированный движок»):
 //   I'_dk = clip(I_dk + Σ эффект × (8 − L)/8 + синергии, 0, 100)
 //   D_d   = Σ w_k · I'_dk;   D_avg = Σ pop_d · D_d
 //   Score = 0.7 · D_avg + 0.3 · min D_d − 1.0 · N_crit,  N_crit — число I' строго < 40 по всем 5×10.
