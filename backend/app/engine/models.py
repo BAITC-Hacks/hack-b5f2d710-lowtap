@@ -1,6 +1,6 @@
 """Canonical API schemas (pydantic v2)."""
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -146,3 +146,60 @@ class Neighbor(BaseModel):
     n_crit: int
     min_district: MinDistrict
     scenario_id: str
+
+
+class Claim(BaseModel):
+    text: str
+    evidence: list[str]
+
+
+class Recommendation(BaseModel):
+    change: str
+    decisions: list[Decision]
+    rationale: str
+    score: float
+    delta: float
+    cost: int
+    verified: bool
+    invalid_reason: str | None
+
+
+class TraceStep(BaseModel):
+    n: int
+    kind: Literal["server", "agent"]
+    tool: str
+    input: dict[str, Any]
+    output_summary: str
+    ms: float
+    ok: bool
+
+
+class VerifiedNumbers(BaseModel):
+    total: int
+    confirmed: int
+    unverified: list[str]
+
+
+class AnalysisReport(BaseModel):
+    summary: str
+    strengths: list[Claim]
+    risks: list[Claim]
+    consequences: list[Claim]
+    tradeoffs: list[Claim]
+    city_impact: list[Claim]
+    recommendations: list[Recommendation]
+    provider: str
+    model: str
+    prompt_version: str
+    trace: list[TraceStep]
+    verified_numbers: VerifiedNumbers
+    cached: bool
+
+
+class ConfigResponse(BaseModel):
+    districts: list[dict[str, Any]]
+    measures: list[dict[str, Any]]
+    rules: dict[str, Any]
+    baseline: float
+    distribution: dict[str, Any] | None
+    data_hash: str

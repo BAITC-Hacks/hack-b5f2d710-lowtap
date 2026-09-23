@@ -1,12 +1,13 @@
 # Бэкенд «Аким на 5 часов»
 
-## Состояние B1
+## Состояние B2
 
 Реализован стартовый скелет на Python 3.14: конфигурация, `/api/health`,
 CLI, pytest и Ruff. B1 добавляет детерминированный движок, валидатор,
 атрибуцию Шепли, факты, поиск соседей и полное распределение сценариев.
-API сценариев, анализ, кэш, StaticFiles, Docker и CI добавляются в B2–B5.
-Доступность LLM в health означает наличие конфигурации; эндпоинта анализа пока нет.
+B2 добавляет API сценариев, объяснения по правилам, golden и StaticFiles.
+LLM-анализ, guard, кэш, Docker и CI добавляются в B3–B5.
+Доступность LLM в health означает наличие конфигурации; анализ в B2 всегда rules.
 
 `backend/app/config.py` определяет корень через
 `Path(__file__).resolve().parents[2]`. Каталоги данных и `.env` разрешаются
@@ -252,3 +253,93 @@ n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1`.
 
 В B1 не реализованы HTTP API сценариев и анализ (B2–B4), golden (B2), Docker
 и CI (B5). Открытых вопросов по B1 нет. Новых зависимостей не добавлено.
+
+## API и объяснения B2
+
+Маршруты `/api/config`, `/api/validate`, `/api/evaluate`, `/api/analyze` используют
+единые pydantic-схемы из `engine/models.py`. Семантически неверный сценарий
+получает HTTP 200 в validate и HTTP 422 в evaluate/analyze; Score для него
+не считается. Ошибки структуры JSON и параметров запроса возвращают ту же
+форму `{ok:false, violations:[...]}` с `BAD_REQUEST`. OpenAPI описывает эту форму
+для всех трёх POST-эндпоинтов.
+
+`config` передаёт пять районов, 14 мер, правила и компактное распределение
+без 433010 внутренних частот Score. Его baseline **52.558** предназначен для
+показа; `evaluate` возвращает точный результат **56.54307** для example_tz.
+Критерий паритета с округлённым эталоном — `abs=5e-4`.
+
+`analyze?provider=rules` строит факты, выбирает объяснения по шаблонам и
+находит до трёх соседей с более высоким Score. Каждая рекомендация повторно
+валидируется и оценивается движком: `verified=true`, `invalid_reason=null`.
+Все утверждения ссылаются на существующие F-id. Для оптимума улучшений нет.
+Отчёт явно различает критические показатели после мер, лаги, изменение
+индексов и влияние на районы с соответствующей долей населения.
+
+В B2 `provider=auto` тоже использует rules, независимо от настройки модели.
+LLM-семафор создан при старте, rules его обходит. Загрузка распределения
+происходит при старте; тёплый rules-вызов занимает примерно 13–46 мс локально.
+`stream=1` отправляет серверные `trace`, затем полный `report` и `done`.
+В B2 все шаги `kind="server"`; живой цикл инструментов добавляется в B4.
+`verified_numbers` пока содержит нулевые счётчики; общий guard появляется в B3.
+
+API и Swagger регистрируются перед StaticFiles. Если `web/dist` существует,
+он обслуживается на `/`; иначе корень возвращает JSON-подсказку. CORS
+разрешает dev-клиент `http://localhost:5173`.
+
+`python -m app.cli golden` (из `backend`) создаёт `data/golden.json` с полями
+`data_hash`, `engine_version`, `seed=42`, `cases`. В `cases` **71** запись:
+17 пресетов, первые 1–4 решения example_tz с `allow_partial:true` и 50 уникальных
+случайных валидных наборов. **59** имеют полный `eval`, **12** — `violations`
+без оценки. Тест заново вычисляет весь файл и обнаруживает любые устаревшие
+поля. Числа не округляются до отображаемых трёх знаков.
+
+## Проверки B2
+
+Из корня клона, PowerShell:
+
+```powershell
+$env:PYTHONUTF8='1'
+.\.venv\Scripts\python.exe -m pytest -q backend/tests
+.\.venv\Scripts\python.exe -m ruff check backend scripts
+.\.venv\Scripts\python.exe -m ruff format --check backend scripts
+Set-Location backend
+..\.venv\Scripts\python.exe -m app.cli golden
+$env:AI_PROVIDER='rules'
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Bash:
+
+```bash
+export PYTHONUTF8=1
+.venv/bin/python -m pytest -q backend/tests
+.venv/bin/python -m ruff check backend scripts
+.venv/bin/python -m ruff format --check backend scripts
+cd backend
+../.venv/bin/python -m app.cli golden
+AI_PROVIDER=rules ../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Ожидается **139 passed, 1 deselected** (локально около 7.4 с), Ruff без
+замечаний, **30** отформатированных Python-файлов. CLI golden печатает
+71 cases, 59 valid, 12 invalid; повторная генерация не меняет файл.
+
+В другом терминале из корня клона (PowerShell; в bash заменить `curl.exe` на `curl`):
+
+```powershell
+curl.exe -fsS http://localhost:8000/api/config
+curl.exe -fsS http://localhost:8000/docs
+curl.exe -fsS -H 'Content-Type: application/json' --data-binary '@data/scenarios/example_tz.json' http://localhost:8000/api/evaluate
+curl.exe -fsS -H 'Content-Type: application/json' --data-binary '@data/scenarios/example_tz.json' 'http://localhost:8000/api/analyze?provider=rules'
+curl.exe -fsS -N -H 'Content-Type: application/json' --data-binary '@data/scenarios/example_tz.json' 'http://localhost:8000/api/analyze?provider=rules&stream=1'
+curl.exe -sS -i -H 'Content-Type: application/json' --data-binary '@data/scenarios/invalid_budget.json' http://localhost:8000/api/evaluate
+```
+
+Первые запросы возвращают HTTP 200: evaluate — Score **56.54307**, cost **95**,
+N_crit **0**; analyze — `provider="rules"`, три проверенные рекомендации;
+поток — `trace → report → done`. Последний запрос возвращает HTTP **422**
+и `BUDGET_EXCEEDED` с превышением на **29** у.е. Эти проверки выполнены
+на живом uvicorn (порт 8001) через curl; `/docs` также HTTP 200.
+
+В B2 не добавлены LLM/guard/кэш (B3–B4), Docker/CI (B5) и опциональное
+сохранение сценариев. Новых зависимостей и открытых вопросов по B2 нет.
