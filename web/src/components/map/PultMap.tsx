@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type Ref } from 'react'
 import { DISTRICT_BY_ID, MEASURE_BY_ID, RULES, districtName } from '../../engine/catalog'
 import { effectShare } from '../../engine/score'
 import { districtConflict } from '../../engine/validate'
@@ -8,8 +8,9 @@ import { useEvaluation } from '../../hooks/useEvaluation'
 import { useClosedPairs } from '../../hooks/useClosedPairs'
 import { useDisplayState } from '../../hooks/useDisplayState'
 import { useGhost } from '../../hooks/useGhost'
+import { useSize } from '../../hooks/useSize'
 import { fmt1, fmt2, fmtShare } from '../../lib/format'
-import { districtShapes } from '../../lib/geo'
+import { districtShapes, type Padding } from '../../lib/geo'
 import { useScenario } from '../../store/scenario'
 import { useUi } from '../../store/ui'
 import { DISTRICT_IDS, INDICATOR_CODES, type DistrictId } from '../../types/data'
@@ -17,6 +18,8 @@ import { MapAstana } from './MapAstana'
 import { MapLegend } from './MapLegend'
 import { Pins, type PinTarget } from './Pins'
 import { WhatIfLabels } from './WhatIfLabels'
+
+const MAP_PADDING: Padding = [56, 40, 80, 40]
 
 /**
  * Карта Пульта: выбор района, режим постановки с what-if на 5 районах (несовместимые районы
@@ -36,7 +39,9 @@ export function PultMap() {
   const cancel = useUi((s) => s.cancel)
   const setGhost = useUi((s) => s.setGhost)
   const [hovered, setHovered] = useState<DistrictId | null>(null)
-  const [pointer, setPointer] = useState<[number, number]>([0, 0])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const hoverCardRef = useRef<HTMLDivElement>(null)
+  const pointer = useRef<[number, number]>([0, 0])
   const [pinned, setPopover] = useState<PinTarget | null>(null)
   const shapes = districtShapes()
 
@@ -53,6 +58,16 @@ export function PultMap() {
 
   // Попап пина живёт только вне постановки и проигрывания.
   const popover = mode.kind === 'idle' ? pinned : null
+
+  function positionHoverCard() {
+    const card = hoverCardRef.current
+    const container = containerRef.current
+    if (!card || !container) return
+    const box = container.getBoundingClientRect()
+    card.style.transform = `translate3d(${pointer.current[0] - box.left + 14}px,${pointer.current[1] - box.top + 14}px,0)`
+  }
+
+  useLayoutEffect(() => { positionHoverCard() }, [hovered, popover])
 
   function click(id: DistrictId) {
     setPopover(null)
@@ -72,10 +87,13 @@ export function PultMap() {
 
   return (
     <div
+      ref={containerRef}
       className="absolute inset-0"
       onMouseMove={(e) => {
-        const box = e.currentTarget.getBoundingClientRect()
-        setPointer([e.clientX - box.left, e.clientY - box.top])
+        if (e.buttons !== 0 || popover) return
+        // Moving a tooltip only moves its layer; it must not render the whole map.
+        pointer.current = [e.clientX, e.clientY]
+        positionHoverCard()
       }}
     >
       <MapAstana
@@ -86,17 +104,22 @@ export function PultMap() {
         blocked={blocked}
         hideDelta={Boolean(placing)}
         districtColors
+        navigable
+        onNavigate={() => setPopover(null)}
         cursor={placing ? 'crosshair' : 'default'}
         onDistrictClick={click}
         onDistrictHover={hover}
-        padding={[56, 40, 80, 40]}
-        overlay={(layout) => (
+        padding={MAP_PADDING}
+        overlay={(layout, getView) => (
           <>
             <Pins
               layout={layout}
               shapes={shapes}
               decisions={decisions}
-              onPinClick={placing || intermediate ? undefined : setPopover}
+              onPinClick={placing || intermediate ? undefined : (pin) => {
+                const view = getView()
+                setPopover({ ...pin, x: pin.x * view.scale + view.x, y: pin.y * view.scale + view.y })
+              }}
               litQuarter={intermediate ? (id) => quarter >= (MEASURE_BY_ID.get(id)?.lag ?? 0) + 1 : undefined}
             />
             {placing && <WhatIfLabels layout={layout} shapes={shapes} options={options} />}
@@ -124,7 +147,7 @@ export function PultMap() {
         </div>
       )}
 
-      {hovered && !popover && <DistrictHoverCard id={hovered} at={pointer} />}
+      {hovered && !popover && <DistrictHoverCard id={hovered} cardRef={hoverCardRef} />}
       {popover && <PinPopover pin={popover} onClose={() => setPopover(null)} />}
       <MapLegend />
     </div>
@@ -132,6 +155,9 @@ export function PultMap() {
 }
 
 function PinPopover({ pin, onClose }: { pin: PinTarget; onClose: () => void }) {
+  const [popoverRef, { height: popoverHeight }] = useSize<HTMLDivElement>()
+  // ResizeObserver gives the content box; p-3 and the border add 26px to its height.
+  const popoverOuterHeight = popoverHeight + 26
   const decisions = useScenario((s) => s.decisions)
   const remove = useScenario((s) => s.remove)
   const startPlacing = useUi((s) => s.startPlacing)
@@ -145,8 +171,12 @@ function PinPopover({ pin, onClose }: { pin: PinTarget; onClose: () => void }) {
 
   return (
     <div
+      ref={popoverRef}
       className="absolute z-30 w-[260px] rounded-chip border border-line bg-panel p-3 text-[12px]"
-      style={{ left: Math.max(8, pin.x - 130), top: pin.y + 18 }}
+      style={{
+        left: `clamp(8px, ${pin.x - 130}px, calc(100% - 268px))`,
+        top: `clamp(8px, ${pin.y + 18}px, calc(100% - ${popoverOuterHeight + 8}px))`,
+      }}
     >
       <button type="button" onClick={onClose} aria-label="Закрыть" className="absolute right-2 top-2 text-ink-2 hover:text-ink">
         <X size={14} />
@@ -185,7 +215,7 @@ function PinPopover({ pin, onClose }: { pin: PinTarget; onClose: () => void }) {
   )
 }
 
-function DistrictHoverCard({ id, at }: { id: DistrictId; at: [number, number] }) {
+function DistrictHoverCard({ id, cardRef }: { id: DistrictId; cardRef: Ref<HTMLDivElement> }) {
   const { state } = useEvaluation()
   const i = DISTRICT_IDS.indexOf(id)
   const district = DISTRICT_BY_ID.get(id)!
@@ -196,8 +226,8 @@ function DistrictHoverCard({ id, at }: { id: DistrictId; at: [number, number] })
 
   return (
     <div
-      className="pointer-events-none absolute z-20 whitespace-nowrap rounded-chip border border-line bg-panel px-2.5 py-1.5 text-[12px]"
-      style={{ left: at[0] + 14, top: at[1] + 14 }}
+      ref={cardRef}
+      className="pointer-events-none absolute left-0 top-0 z-20 whitespace-nowrap rounded-chip border border-line bg-panel px-2.5 py-1.5 text-[12px]"
     >
       <b className="font-semibold">{districtName(id, lang)}</b>
       <span className="num text-ink-2">

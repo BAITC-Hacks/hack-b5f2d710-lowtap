@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useMemo } from 'react'
 import { MEASURE_BY_ID } from '../../engine/catalog'
 import { DIRECTION_COLOR } from '../../lib/colors'
 import { pinOffset, type DistrictShape, type MapLayout } from '../../lib/geo'
@@ -30,6 +31,10 @@ interface Props {
  */
 export function Pins({ layout, shapes, decisions, onPinClick, litQuarter }: Props) {
   const reduced = useReducedMotion()
+  const clipPaths = useMemo(() => shapes.map((s) => ({
+    id: s.id,
+    path: layout.path(s.main) ?? undefined,
+  })), [layout, shapes])
   const pins: (PinTarget & { size: number; color: string })[] = []
   const slot: Record<string, number> = {}
 
@@ -56,9 +61,9 @@ export function Pins({ layout, shapes, decisions, onPinClick, litQuarter }: Prop
   return (
     <g>
       <defs>
-        {shapes.map((s) => (
+        {clipPaths.map((s) => (
           <clipPath key={s.id} id={`clip-${s.id}`}>
-            <path d={layout.path(s.main) ?? undefined} />
+            <path d={s.path} />
           </clipPath>
         ))}
       </defs>

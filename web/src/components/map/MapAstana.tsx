@@ -1,12 +1,15 @@
+import { Maximize, Minus, Plus } from 'lucide-react'
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import { DISTRICT_BY_ID, RULES, districtName } from '../../engine/catalog'
 import { BASE_STATE, type EngineState } from '../../engine/score'
+import { useMapNavigation, type MapView } from '../../hooks/useMapNavigation'
 import { useSize } from '../../hooks/useSize'
 import { DISTRICT_COLOR, deltaColor, labelInk, mapColor, signColor } from '../../lib/colors'
 import { fmt1, fmt2, fmtSigned } from '../../lib/format'
 import { districtShapes, fitMap, riverLine, type MapLayout, type Padding } from '../../lib/geo'
 import { useUi, type MapIndicator } from '../../store/ui'
 import { DISTRICT_IDS, INDICATOR_CODES, type DistrictId } from '../../types/data'
+import { MapLandscape } from './MapLandscape'
 
 const EASE = 'var(--ease-data)'
 
@@ -18,6 +21,9 @@ export interface MapAstanaProps {
   indicator?: MapIndicator
   /** Мини-карта без взаимодействия (Вердикт, Сравнение). */
   compact?: boolean
+  /** Пейзаж и управление камерой только для большой карты Пульта. */
+  navigable?: boolean
+  onNavigate?: () => void
   /** Подписи: имя + число + дельта, только число или ничего. */
   labels?: 'full' | 'numbers' | 'none'
   /** Подсветка района извне (hover на числе записки). */
@@ -33,7 +39,7 @@ export interface MapAstanaProps {
   onDistrictClick?: (id: DistrictId) => void
   onDistrictHover?: (id: DistrictId | null) => void
   /** Слои поверх районов в пиксельных координатах карты (пины, what-if). */
-  overlay?: (layout: MapLayout) => ReactNode
+  overlay?: (layout: MapLayout, getView: () => MapView) => ReactNode
   padding?: Padding
 }
 
@@ -51,6 +57,8 @@ export function MapAstana({
   ghost = null,
   indicator = 'D',
   compact = false,
+  navigable = false,
+  onNavigate,
   labels = compact ? 'none' : 'full',
   highlight = null,
   hideDelta = false,
@@ -65,10 +73,24 @@ export function MapAstana({
 }: MapAstanaProps) {
   const [ref, { width, height }] = useSize<HTMLDivElement>()
   const [hovered, setHovered] = useState<DistrictId | null>(null)
+  const [focused, setFocused] = useState<DistrictId | null>(null)
+  const { viewportRef, worldRef, getView, dragging, handlers, zoomIn, zoomOut, reset, canZoomIn, canZoomOut } = useMapNavigation(width, height, navigable && !compact, () => {
+    setHovered(null)
+    onDistrictHover?.(null)
+    onNavigate?.()
+  })
   const hatchId = `hatch${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const shapes = districtShapes()
   const river = useMemo(() => riverLine(shapes), [shapes])
   const layout = useMemo(() => (width && height ? fitMap(shapes, width, height, padding) : null), [shapes, width, height, padding])
+  const paths = useMemo(() => layout && ({
+    districts: shapes.map((s) => ({
+      id: s.id,
+      main: layout.path(s.main) ?? undefined,
+      exclaves: s.exclaves.map((ex) => layout.path(ex) ?? undefined),
+    })),
+    river: layout.path(river) ?? undefined,
+  }), [layout, shapes, river])
   const state = ghost ?? current
   const ghostChanged = (i: number) => ghost !== null && Math.abs(ghost.d[i] - current.d[i]) >= 0.005
 
@@ -84,111 +106,148 @@ export function MapAstana({
   const interactive = Boolean(onDistrictClick) && !compact
 
   function hover(id: DistrictId | null) {
+    if (dragging) return
     setHovered(id)
     onDistrictHover?.(id)
   }
 
   return (
-    <div ref={ref} className="absolute inset-0">
-      {layout && (
-        <svg width={width} height={height} role="img" aria-label="Карта районов Астаны" style={{ cursor }}>
-          <defs>
-            <pattern id={hatchId} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-              <line x1="0" y1="0" x2="0" y2="6" style={{ stroke: 'var(--down)', strokeWidth: 2 }} />
-            </pattern>
-          </defs>
+    <div ref={ref} className="absolute inset-0 overflow-hidden">
+      {layout && paths && (
+        <div
+          ref={viewportRef}
+          data-testid="map-viewport"
+          className="absolute inset-0"
+          style={{
+            cursor: dragging ? 'grabbing' : navigable && cursor === 'default' ? 'grab' : cursor,
+            touchAction: navigable ? 'none' : undefined,
+            userSelect: 'none',
+          }}
+          {...handlers}
+        >
+          <div ref={worldRef} data-testid="map-world" className="absolute inset-0" style={{ transformOrigin: '0 0' }}>
+            <svg width={width} height={height} role="img" aria-label="Карта районов Астаны" style={{ overflow: 'visible' }}>
+              <defs>
+                <pattern id={hatchId} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="6" style={{ stroke: 'var(--down)', strokeWidth: 2 }} />
+                </pattern>
+              </defs>
 
-          {/* districts */}
-          <g>
-            {shapes.map((s, i) => (
-              <g key={s.id}>
-                {s.exclaves.map((ex, j) => (
-                  <path key={j} d={layout.path(ex) ?? undefined} opacity={0.35} style={{ fill: fill(i), transition: `fill 300ms ${EASE}` }} />
-                ))}
+              <g>
+                {navigable && !compact && <MapLandscape width={width} height={height} />}
+
+                {/* districts */}
+                <g>
+                  {paths.districts.map((s, i) => (
+                    <g key={s.id}>
+                      {s.exclaves.map((ex, j) => (
+                        <path key={j} d={ex} opacity={0.35} style={{ fill: fill(i), transition: `fill 300ms ${EASE}` }} />
+                      ))}
+                      <path
+                        d={s.main}
+                        role={interactive ? 'button' : undefined}
+                        aria-label={interactive ? `${DISTRICT_BY_ID.get(s.id)!.name_ru}, D ${fmt2(state.d[i])}` : undefined}
+                        style={{
+                          fill: fill(i),
+                          stroke: categorical ? DISTRICT_COLOR[s.id].line : 'var(--panel)',
+                          strokeWidth: categorical ? 1.5 : 1,
+                          transition: `fill 300ms ${EASE}`,
+                          // SVG's native focus ring outlines the bounding rectangle.
+                          // Keyboard focus is drawn along the district contour below.
+                          outline: 'none',
+                          cursor: dragging ? 'grabbing' : interactive ? (blocked[s.id] ? 'not-allowed' : cursor === 'crosshair' ? 'crosshair' : navigable ? 'grab' : 'pointer') : undefined,
+                        }}
+                        onMouseEnter={interactive ? () => hover(s.id) : undefined}
+                        onMouseLeave={interactive ? () => hover(null) : undefined}
+                        onClick={interactive && !blocked[s.id] ? () => onDistrictClick?.(s.id) : undefined}
+                        tabIndex={interactive ? 0 : undefined}
+                        onFocus={interactive ? (event) => { if (event.currentTarget.matches(':focus-visible')) setFocused(s.id) } : undefined}
+                        onBlur={interactive ? () => setFocused(null) : undefined}
+                        onKeyDown={interactive && !blocked[s.id] ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDistrictClick?.(s.id) } } : undefined}
+                      />
+                    </g>
+                  ))}
+                </g>
+
+                {/* hatch (<40): пульсирует, пока в городе есть критические пары */}
+                <g className={state.nCrit > 0 ? 'crit-pulse' : undefined} pointerEvents="none">
+                  {paths.districts.map((s, i) => (
+                    <path
+                      key={s.id}
+                      d={s.main}
+                      fill={`url(#${hatchId})`}
+                      style={{ opacity: critical(i) || blocked[s.id] ? 0.55 : 0, transition: `opacity 300ms ${EASE}` }}
+                    />
+                  ))}
+                </g>
+
+                {/* river */}
                 <path
-                  d={layout.path(s.main) ?? undefined}
-                  role={interactive ? 'button' : undefined}
-                  aria-label={interactive ? `${DISTRICT_BY_ID.get(s.id)!.name_ru}, D ${fmt2(state.d[i])}` : undefined}
-                  style={{
-                    fill: fill(i),
-                    stroke: categorical ? DISTRICT_COLOR[s.id].line : 'var(--panel)',
-                    strokeWidth: categorical ? 1.5 : 1,
-                    transition: `fill 300ms ${EASE}`,
-                    cursor: interactive ? (blocked[s.id] ? 'not-allowed' : cursor === 'crosshair' ? 'crosshair' : 'pointer') : undefined,
-                  }}
-                  onMouseEnter={interactive ? () => hover(s.id) : undefined}
-                  onMouseLeave={interactive ? () => hover(null) : undefined}
-                  onClick={interactive && !blocked[s.id] ? () => onDistrictClick?.(s.id) : undefined}
-                  tabIndex={interactive ? 0 : undefined}
-                  onKeyDown={interactive && !blocked[s.id] ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDistrictClick?.(s.id) } } : undefined}
+                  d={paths.river}
+                  pointerEvents="none"
+                  style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 1.5, opacity: 0.5, strokeLinejoin: 'round' }}
                 />
+
+                {/* selection / hover / ghost / highlight */}
+                <g pointerEvents="none">
+                  {paths.districts.map((s, i) =>
+                    s.id === selected || s.id === highlight || s.id === focused || (interactive && s.id === hovered) || ghostChanged(i) ? (
+                      <path
+                        key={s.id}
+                        d={s.main}
+                        style={{
+                          fill: 'none',
+                          stroke: 'var(--accent)',
+                          strokeWidth: s.id === selected || s.id === highlight || s.id === focused ? 2.5 : 1.5,
+                          strokeDasharray: ghostChanged(i) && s.id !== selected ? '4 2' : undefined,
+                        }}
+                      />
+                    ) : null,
+                  )}
+                </g>
+
+                {labels !== 'none' && (
+                  <g pointerEvents="none">
+                    {DISTRICT_IDS.map((id, i) => (
+                      <DistrictLabel
+                        key={id}
+                        id={id}
+                        at={layout.anchors[id]}
+                        value={districtValue(state, base, indicator, i)}
+                        delta={
+                          hideDelta || labels === 'numbers' || indicator === 'delta'
+                            ? null
+                            : districtValue(state, base, indicator, i) - districtValue(ghost ? current : base, base, indicator, i)
+                        }
+                        ghost={ghost !== null}
+                        nameless={labels === 'numbers'}
+                        critical={critical(i)}
+                        indicator={indicator}
+                        fillColor={fill(i)}
+                        blocked={blocked[id]}
+                      />
+                    ))}
+                  </g>
+                )}
+
+                {overlay?.(layout, getView)}
               </g>
-            ))}
-          </g>
-
-          {/* hatch (<40): пульсирует, пока в городе есть критические пары */}
-          <g className={state.nCrit > 0 ? 'crit-pulse' : undefined} pointerEvents="none">
-            {shapes.map((s, i) => (
-              <path
-                key={s.id}
-                d={layout.path(s.main) ?? undefined}
-                fill={`url(#${hatchId})`}
-                style={{ opacity: critical(i) || blocked[s.id] ? 0.55 : 0, transition: `opacity 300ms ${EASE}` }}
-              />
-            ))}
-          </g>
-
-          {/* river */}
-          <path
-            d={layout.path(river) ?? undefined}
-            pointerEvents="none"
-            style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 1.5, opacity: 0.5, strokeLinejoin: 'round' }}
-          />
-
-          {/* selection / hover / ghost / highlight */}
-          <g pointerEvents="none">
-            {shapes.map((s, i) =>
-              s.id === selected || s.id === highlight || (interactive && s.id === hovered) || ghostChanged(i) ? (
-                <path
-                  key={s.id}
-                  d={layout.path(s.main) ?? undefined}
-                  style={{
-                    fill: 'none',
-                    stroke: 'var(--accent)',
-                    strokeWidth: s.id === selected || s.id === highlight ? 2.5 : 1.5,
-                    strokeDasharray: ghostChanged(i) && s.id !== selected ? '4 2' : undefined,
-                  }}
-                />
-              ) : null,
-            )}
-          </g>
-
-          {labels !== 'none' && (
-            <g pointerEvents="none">
-              {DISTRICT_IDS.map((id, i) => (
-                <DistrictLabel
-                  key={id}
-                  id={id}
-                  at={layout.anchors[id]}
-                  value={districtValue(state, base, indicator, i)}
-                  delta={
-                    hideDelta || labels === 'numbers' || indicator === 'delta'
-                      ? null
-                      : districtValue(state, base, indicator, i) - districtValue(ghost ? current : base, base, indicator, i)
-                  }
-                  ghost={ghost !== null}
-                  nameless={labels === 'numbers'}
-                  critical={critical(i)}
-                  indicator={indicator}
-                  fillColor={fill(i)}
-                  blocked={blocked[id]}
-                />
-              ))}
-            </g>
-          )}
-
-          {overlay?.(layout)}
-        </svg>
+            </svg>
+          </div>
+        </div>
+      )}
+      {navigable && !compact && (
+        <div className="absolute right-3 top-3 flex flex-col overflow-hidden rounded-chip border border-line bg-panel shadow-sm" role="group" aria-label="Масштаб карты">
+          <button type="button" aria-label="Приблизить карту" title="Приблизить — также колёсиком мыши" onClick={zoomIn} disabled={!canZoomIn} className="flex h-8 w-8 items-center justify-center text-ink-2 hover:bg-bg disabled:opacity-35">
+            <Plus size={16} />
+          </button>
+          <button type="button" aria-label="Отдалить карту" title="Отдалить" onClick={zoomOut} disabled={!canZoomOut} className="flex h-8 w-8 items-center justify-center border-t border-line text-ink-2 hover:bg-bg disabled:opacity-35">
+            <Minus size={16} />
+          </button>
+          <button type="button" aria-label="Вернуть карту в центр" title="Исходный вид карты" onClick={reset} className="flex h-8 w-8 items-center justify-center border-t border-line text-ink-2 hover:bg-bg">
+            <Maximize size={15} />
+          </button>
+        </div>
       )}
     </div>
   )
