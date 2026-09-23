@@ -1,11 +1,12 @@
 # Бэкенд «Аким на 5 часов»
 
-## Состояние B0
+## Состояние B1
 
 Реализован стартовый скелет на Python 3.14: конфигурация, `/api/health`,
-CLI `--help`/`--version`, pytest и Ruff. Движок, анализ сценариев, кэш,
-StaticFiles, Docker и CI добавляются по этапам B1–B5. На B0 доступность LLM
-в health означает наличие конфигурации; эндпоинта анализа пока нет.
+CLI, pytest и Ruff. B1 добавляет детерминированный движок, валидатор,
+атрибуцию Шепли, факты, поиск соседей и полное распределение сценариев.
+API сценариев, анализ, кэш, StaticFiles, Docker и CI добавляются в B2–B5.
+Доступность LLM в health означает наличие конфигурации; эндпоинта анализа пока нет.
 
 `backend/app/config.py` определяет корень через
 `Path(__file__).resolve().parents[2]`. Каталоги данных и `.env` разрешаются
@@ -13,7 +14,8 @@ StaticFiles, Docker и CI добавляются по этапам B1–B5. На
 через python-dotenv при импорте конфигурации; переменные процесса имеют приоритет.
 
 Схемы ответов находятся только в `backend/app/engine/models.py` (pydantic v2).
-В B0 есть `HealthResponse`; остальные схемы появятся вместе с реализацией.
+В B1 определены `HealthResponse`, `Scenario`, `ValidationResult`, `EvalResult`,
+`Fact`, `Neighbor` и их вложенные структуры.
 Версия приложения — `0.1.0`. `data_hash` — первые 12 hex SHA-256 байтов
 `districts.json`, `measures.json`, `rules.json` подряд в указанном порядке.
 Хэш вычисляется при старте приложения, входные JSON не изменяются.
@@ -151,3 +153,102 @@ CLI печатает `0.1.0`. Маркер `slow` зарегистрирован
 Официальный Python SDK используется согласно
 [документации OpenAI: список моделей](https://developers.openai.com/api/reference/python/resources/models/methods/list)
 и [Responses API](https://developers.openai.com/api/reference/python/resources/responses/methods/create).
+
+## Детерминированный движок B1
+
+`catalog.py` загружает замороженные данные один раз; `validator.py` собирает
+все семантические нарушения, прежде чем `scoring.evaluate` считает официальный
+результат. `allow_partial=True` отключает только требование ровно пяти решений
+для внутренних оценок; бюджет, конфликты и прочие ограничения сохраняются.
+Структурно неверный JSON проверяет pydantic; CLI возвращает `BAD_REQUEST` и код 2.
+HTTP-обработчик такой ошибки появляется в B2.
+
+`scoring.py` суммирует эффекты с лагом и фиксированные синергии, затем применяет
+clip к каждому из 50 показателей. Критическими считаются значения строго ниже 40.
+Score вычисляется по формуле ТЗ без бонуса за остаток бюджета. Ответ содержит
+компоненты формулы, районные индексы, критические пары и девять точек Q0–Q8.
+`indicators_before`, `indicators_after`, `deltas` — словари из десяти пар
+`код показателя → число`. В `critical_pairs.closed` остаётся исходное критическое
+значение; исправленное значение доступно в `districts[id].indicators_after`.
+
+Расчёты сохраняют точность до десяти десятичных знаков, CLI показывает Score
+с тремя. Точная база **52.55768** отображается как **52.558**. Сравнение с
+округлённой базой ошибочно дало бы 20024 набора хуже базы вместо **20003**.
+`attribution.py` оценивает все 32 подмножества: сумма Шепли и waterfall равна
+`score − baseline`; LOO — потеря при удалении меры, `per_unit = shapley / cost`.
+Waterfall сортируется численно M1…M14. Для `scenario_id` сортировка строковая
+по `measure_id`, затем району: M1, M10, …, M2; JSON имеет форму
+`{"decisions":[...]}`, без пробелов, с явным `district:null` для городских мер.
+
+`facts.py` строит F1…Fn только из движка и каталога: изменения показателей
+(включая отрицательные), критические пары, вклады, лаги, назначения мер,
+синергии, расходы и доли населения. Значения точные, текстовые числа имеют
+два знака. Общегородские расходы показаны отдельно; они не приписываются
+произвольно отдельным районам. Доля населения с закрытыми критическими парами
+означает районы, где исправлен хотя бы один показатель.
+
+`search.py` перебирает все валидные замены одного решения (мера и/или район),
+убирает дубликаты и ранжирует по `score`, `zero_crit`, `min_district` или
+`budget_cap`. Последняя цель по умолчанию ограничена текущими расходами.
+Для `example_tz` найдено 117 соседей; лучший имеет Score **57.20556**, cost **100**.
+
+`scripts/enumerate_plans.py` перебирает сочетания пяти мер и все назначения
+районов; заранее вычисленные районные подмножества ускоряют точный перебор.
+`data/plan_distribution.json` содержит **694395** сценариев, **20003** хуже
+точной базы, минимум **52.0408375**, максимум **57.236735**, 1000 квантилей,
+бины шириной 0.05 и top20. Дополнительные частоты точных Score обеспечивают
+строгий перцентиль (доля оценок меньше, а не меньше или равных). Артефакт
+проверяется по `data_hash` и `engine_version="1.0.0"`; без файла перцентиль
+равен null, устаревший файл требует повторного перебора.
+
+## Проверки B1
+
+Из корня клона, PowerShell:
+
+```powershell
+$env:PYTHONUTF8='1'
+.\.venv\Scripts\python.exe -m pytest -q backend/tests
+.\.venv\Scripts\python.exe -m ruff check backend scripts
+.\.venv\Scripts\python.exe -m ruff format --check backend scripts
+.\.venv\Scripts\python.exe scripts/enumerate_plans.py
+Set-Location backend
+..\.venv\Scripts\python.exe -m pytest -q
+..\.venv\Scripts\python.exe -m pytest -q -m slow
+..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json
+..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json --json
+```
+
+Bash:
+
+```bash
+export PYTHONUTF8=1
+.venv/bin/python -m pytest -q backend/tests
+.venv/bin/python -m ruff check backend scripts
+.venv/bin/python -m ruff format --check backend scripts
+.venv/bin/python scripts/enumerate_plans.py
+cd backend
+../.venv/bin/python -m pytest -q
+../.venv/bin/python -m pytest -q -m slow
+../.venv/bin/python -m app.cli evaluate ../data/scenarios/example_tz.json
+../.venv/bin/python -m app.cli evaluate ../data/scenarios/example_tz.json --json
+```
+
+Ожидается **99 passed, 1 deselected** без сети и менее 10 секунд для обычного
+набора; slow — **1 passed, 99 deselected**. Slow заново генерирует весь артефакт,
+сравнивает его с сохранённым и сверяет выборку оптимизированных расчётов с
+основным движком. Ruff check — `All checks passed!`, format — 24 файла.
+CLI: `Score 56.543 | baseline 52.558 | delta +3.985`, `cost 95 | remaining 5 |
+n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1`.
+
+Эталоны пяти валидных сценариев (Score округлён для показа):
+
+| Сценарий | Score | Расходы | N_crit |
+|---|---:|---:|---:|
+| example_tz | 56.543 | 95 | 0 |
+| cheapest | 55.667 | 61 | 1 |
+| naive_esil | 54.009 | 100 | 2 |
+| worst_of_all | 52.041 | 80 | 3 |
+| optimum | 57.237 | 98 | 0 |
+
+В B1 не реализованы HTTP API сценариев и анализ (B2–B4), golden (B2), Docker
+и CI (B5). Открытых вопросов по B1 нет. Новых зависимостей не добавлено.
