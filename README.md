@@ -76,7 +76,7 @@ cp .env.example .env
 | Тесты бэкенда | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | 213 passed, 1 deselected (полный перебор — `-m slow`) |
 | Эталон ТЗ в CLI | `cd backend; ..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json` | `Score 56.543`, `cost 95`, `n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1` |
 | Бюджет не превысить | Swagger → `POST /api/evaluate` с телом `data/scenarios/invalid_budget.json` | **HTTP 422**, `BUDGET_EXCEEDED`, «превышение на 29 у.е.» |
-| AI-анализ без ключа | `POST /api/analyze?provider=rules` с `example_tz.json` | записка, 3 проверенные рекомендации, `verified_numbers` 21/21 |
+| AI-анализ без ключа | `POST /api/analyze` с `example_tz.json` (по умолчанию `AI_CACHE=first`) | `provider: "cache"` — сохранённый ответ агента, в трассе шаг `kind: "agent"`, `verified_numbers` 10/10; `?provider=rules` — записка по правилам, 21/21 |
 | Пресеты в UI | «Пресеты ▾» → «Пример ТЗ» / «Дешёвый» / «Невалидный: бюджет» | 56.54 / 95, 55.67 / 61 и КРИТ 1, «+29 → 129/100» и заблокированные кнопки |
 | Одинаковый старт | `GET /api/config` → `data_hash`; внизу Пульта `data 1172683703cf` | один хэш датасета на сервере и в UI |
 
@@ -124,25 +124,31 @@ cp .env.example .env
 | соседние наборы, перцентиль по полному перебору 694 395 наборов | числа не считает: guard сверяет каждое десятичное число с фактами (±0.005) |
 | таймлайн Q0..Q8, what-if, ghost-превью (TS, < 1 мс) | нет ключа, таймаут или ошибка → кэш или rules, HTTP 200 |
 
-Реальный ответ `POST /api/analyze?provider=rules` на `example_tz.json` (фрагмент):
+Реальный ответ агента (OpenAI `gpt-4.1-mini`, tool-loop) на «Пример ТЗ» сохранён в [data/cache/demo/efb979f1c9c1.json](data/cache/demo/efb979f1c9c1.json) — без ключа сервер отдаёт его из кэша для всех пяти пресетов. Фрагмент:
 
 ```json
 {
-  "summary": "Score 56.54, изменение к базе +3.99; расходы 95.00 у.е.",
-  "strengths": [{ "text": "M7: вклад в Score +1.45.", "evidence": ["F96"] }],
+  "summary": "Сценарий улучшил Score до 56.54, закрыл 2 критических показателя Нуры.",
+  "strengths": [{ "text": "Score вырос на 3.99 до 56.54, что лучше базового 52.56.", "evidence": ["F1", "F2", "F3"] }],
+  "risks": [{ "text": "Лаг мер M7, M8 по 3 квартала, M10 — 1 квартал, эффект реализуется не сразу.", "evidence": ["F94", "F100", "F106"] }],
   "recommendations": [
-    { "change": "M5 (Сарыарка) → M3 (Нура).", "score": 57.20556, "delta": 4.64788, "cost": 100, "verified": true }
+    { "change": "Заменить M5 (Сарыарка) на M3 (Нура) для транспорта.", "rationale": "Повышение Score до 57.21, полный бюджет 100 у.е.",
+      "score": 57.20556, "delta": 4.64788, "cost": 100, "verified": true }
   ],
-  "provider": "rules",
+  "provider": "llm",
+  "model": "gpt-4.1-mini",
   "trace": [
     { "n": 1, "kind": "server", "tool": "evaluate_scenario", "output_summary": "Score 56.543; критических пар 0" },
     { "n": 2, "kind": "server", "tool": "build_facts", "output_summary": "Сформировано фактов: 120" },
-    { "n": 3, "kind": "server", "tool": "best_neighbors", "output_summary": "Проверены альтернативы; улучшений: 3." },
-    { "n": 4, "kind": "server", "tool": "guard_report", "output_summary": "Подтверждено чисел: 21 из 21." }
+    { "n": 3, "kind": "agent", "tool": "best_neighbors", "output_summary": "Проверено альтернатив: 3." },
+    { "n": 4, "kind": "server", "tool": "agent_loop", "output_summary": "Получен отчёт агента; модель gpt-4.1-mini-2025-04-14; токены: вход 28923, выход 1688." },
+    { "n": 5, "kind": "server", "tool": "guard_report", "output_summary": "Подтверждено чисел: 10 из 10." }
   ],
-  "verified_numbers": { "total": 21, "confirmed": 21, "unverified": [] }
+  "verified_numbers": { "total": 10, "confirmed": 10, "unverified": [] }
 }
 ```
+
+Шаг `kind: "agent"` — инструмент, который вызвала сама модель: она проверила альтернативы движком, прежде чем советовать. Score и дельту рекомендации сервер перезаписал своим пересчётом (`verified: true`).
 
 Архитектура AI-слоя, guard, кэш и провайдеры описаны в [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

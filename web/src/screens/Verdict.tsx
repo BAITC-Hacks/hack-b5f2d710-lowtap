@@ -27,7 +27,7 @@ import type { Decision, Recommendation } from '../types/api'
 function providerLabel(template: boolean, provider: string, model: string | null): string {
   if (template) return 'шаблон'
   if (provider === 'llm') return model ? `LLM · ${model}` : 'LLM'
-  if (provider === 'cache') return 'кэш LLM'
+  if (provider === 'cache') return model ? `кэш LLM · ${model}` : 'кэш LLM'
   if (provider.startsWith('rules(fallback')) return 'rules · fallback'
   return provider
 }
