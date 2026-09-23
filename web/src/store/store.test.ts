@@ -49,6 +49,20 @@ describe('ui store', () => {
     expect(useUi.getState().selectedDistrict).toBeNull()
   })
 
+  it('Space: проигрывание с Q0, пауза, Esc — на итог Q8', () => {
+    useUi.setState({ mode: { kind: 'idle' }, quarter: 8 })
+    useUi.getState().togglePlay()
+    expect(useUi.getState().mode).toEqual({ kind: 'playing' })
+    expect(useUi.getState().quarter).toBe(0)
+    useUi.getState().setQuarter(3)
+    useUi.getState().togglePlay()
+    expect(useUi.getState().mode).toEqual({ kind: 'idle' })
+    useUi.getState().togglePlay()
+    expect(useUi.getState().quarter).toBe(3)
+    useUi.getState().stopPlaying()
+    expect(useUi.getState()).toMatchObject({ mode: { kind: 'idle' }, quarter: 8 })
+  })
+
   it('квартал ограничен 0..8', () => {
     useUi.getState().setQuarter(11)
     expect(useUi.getState().quarter).toBe(8)

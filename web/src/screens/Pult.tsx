@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { BottomPanel } from '../components/bottom/BottomPanel'
 import { Catalog } from '../components/catalog/Catalog'
 import { Header } from '../components/header/Header'
@@ -6,7 +6,7 @@ import { PultMap } from '../components/map/PultMap'
 import { ScoreRail } from '../components/score/ScoreRail'
 import { useHotkeys } from '../lib/hotkeys'
 import { useScenario } from '../store/scenario'
-import { useUi } from '../store/ui'
+import { HORIZON, useUi } from '../store/ui'
 
 /**
  * Главный экран. Один CSS-grid под 1280×720, растущий до 1440×900 и 1920×1080:
@@ -16,14 +16,30 @@ export function Pult() {
   const handlers = useMemo(
     () => ({
       escape: () => {
-        useUi.getState().setGhost(null)
-        useUi.getState().cancel()
+        const ui = useUi.getState()
+        ui.setGhost(null)
+        if (ui.mode.kind === 'playing' || ui.quarter < HORIZON) ui.stopPlaying()
+        else ui.cancel()
       },
       undo: () => useScenario.getState().undo(),
+      space: () => {
+        if (useScenario.getState().decisions.length > 0) useUi.getState().togglePlay()
+      },
+      matrix: () => useUi.getState().toggleBottomTab(),
     }),
     [],
   )
   useHotkeys(handlers)
+
+  // Любое изменение набора возвращает Пульт к итогу Q8: проигрывание показывает только готовый набор.
+  useEffect(
+    () =>
+      useScenario.subscribe((s, prev) => {
+        const ui = useUi.getState()
+        if (s.decisions !== prev.decisions && (ui.mode.kind === 'playing' || ui.quarter < HORIZON)) ui.stopPlaying()
+      }),
+    [],
+  )
 
   return (
     <div className="grid h-full min-h-[720px] min-w-[1280px] grid-cols-[264px_1fr_300px] grid-rows-[44px_1fr_120px] overflow-hidden">

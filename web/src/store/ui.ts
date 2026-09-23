@@ -35,6 +35,10 @@ interface UiState {
   setScreen: (screen: Screen) => void
   startPlacing: (measureId: string) => void
   startPlaying: () => void
+  /** Space: пауза во время проигрывания; иначе — проиграть (с Q0, если стоим на Q8). */
+  togglePlay: () => void
+  /** Выход из проигрывания на итог Q8. */
+  stopPlaying: () => void
   /** Esc: выход из постановки/проигрывания, затем снятие выбора района. */
   cancel: () => void
   setGhost: (ghost: Ghost | null) => void
@@ -63,6 +67,12 @@ export const useUi = create<UiState>()((set, get) => ({
   setScreen: (screen) => set({ screen, mode: { kind: 'idle' }, ghost: null }),
   startPlacing: (measureId) => set({ mode: { kind: 'placing', measureId }, ghost: null }),
   startPlaying: () => set({ mode: { kind: 'playing' }, ghost: null }),
+  togglePlay: () => {
+    const { mode, quarter } = get()
+    if (mode.kind === 'playing') set({ mode: { kind: 'idle' } })
+    else set({ mode: { kind: 'playing' }, ghost: null, quarter: quarter >= HORIZON ? 0 : quarter })
+  },
+  stopPlaying: () => set({ mode: { kind: 'idle' }, quarter: HORIZON }),
   cancel: () => {
     if (get().mode.kind !== 'idle') set({ mode: { kind: 'idle' }, ghost: null })
     else set({ selectedDistrict: null })

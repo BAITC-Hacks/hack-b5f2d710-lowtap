@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { RULES } from '../../engine/catalog'
 import { BASE_STATE, formulaComponents } from '../../engine/score'
 import { useEvaluation } from '../../hooks/useEvaluation'
+import { useDisplayState } from '../../hooks/useDisplayState'
 import { useGhost } from '../../hooks/useGhost'
 import { useAnalysis } from '../../store/analysis'
 import { BudgetTicks } from './BudgetTicks'
@@ -13,9 +14,11 @@ import { ValidationStrip } from './ValidationStrip'
 
 /** Правая рейка Пульта: бюджет → Score → формула → районы → валидатор → действия. */
 export function ScoreRail() {
-  const { state, status, decisions, cost, remaining, checks, violations } = useEvaluation()
+  const { status, decisions, cost, remaining, checks, violations } = useEvaluation()
+  const { display: state, quarter, intermediate } = useDisplayState()
   const run = useAnalysis((s) => s.run)
-  const ghost = useGhost()
+  const liveGhost = useGhost()
+  const ghost = intermediate ? null : liveGhost
   const official = status === 'official'
   const over = cost - RULES.budget
   const invalidFull = decisions.length >= RULES.decisions_required && !official
@@ -47,9 +50,10 @@ export function ScoreRail() {
       </section>
 
       <ScoreHero score={state.score} delta={state.score - BASE_STATE.score} status={status} count={decisions.length} invalidFull={invalidFull}
+        quarter={intermediate ? quarter : null}
         ghost={ghost ? { score: ghost.state.score, label: ghost.label } : null}
       />
-      {official && <Percentile score={state.score} />}
+      {official && !intermediate && <Percentile score={state.score} />}
 
       <FormulaRows state={state} base={BASE_STATE} c={formulaComponents(state)} />
       <DistrictRows state={state} base={BASE_STATE} />

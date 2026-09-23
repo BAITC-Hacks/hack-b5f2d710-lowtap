@@ -5,6 +5,8 @@ import { effectShare } from '../../engine/score'
 import { districtConflict } from '../../engine/validate'
 import { whatIf } from '../../engine/whatif'
 import { useEvaluation } from '../../hooks/useEvaluation'
+import { useClosedPairs } from '../../hooks/useClosedPairs'
+import { useDisplayState } from '../../hooks/useDisplayState'
 import { useGhost } from '../../hooks/useGhost'
 import { fmt1, fmt2, fmtShare } from '../../lib/format'
 import { districtShapes } from '../../lib/geo'
@@ -21,8 +23,11 @@ import { WhatIfLabels } from './WhatIfLabels'
  * заблокированы), ghost-превью при наведении, пины поставленных мер с попапом «Переставить / Снять».
  */
 export function PultMap() {
-  const { state, decisions } = useEvaluation()
-  const ghost = useGhost()
+  const { decisions } = useEvaluation()
+  const { display: state, quarter, intermediate } = useDisplayState()
+  const closed = useClosedPairs(state)
+  const liveGhost = useGhost()
+  const ghost = intermediate ? null : liveGhost
   const place = useScenario((s) => s.place)
   const mode = useUi((s) => s.mode)
   const indicator = useUi((s) => s.indicator)
@@ -86,8 +91,25 @@ export function PultMap() {
         padding={[56, 40, 80, 40]}
         overlay={(layout) => (
           <>
-            <Pins layout={layout} shapes={shapes} decisions={decisions} onPinClick={placing ? undefined : setPopover} />
+            <Pins
+              layout={layout}
+              shapes={shapes}
+              decisions={decisions}
+              onPinClick={placing || intermediate ? undefined : setPopover}
+              litQuarter={intermediate ? (id) => quarter >= (MEASURE_BY_ID.get(id)?.lag ?? 0) + 1 : undefined}
+            />
             {placing && <WhatIfLabels layout={layout} shapes={shapes} options={options} />}
+            {closed.map((p) => {
+              const [x, y] = layout.anchors[p.district_id]
+              return (
+                <g key={`${p.district_id}.${p.indicator}`} transform={`translate(${x},${y + 36})`} pointerEvents="none">
+                  <rect x={-40} y={0} width={80} height={17} rx={3} style={{ fill: 'var(--panel)', stroke: 'var(--up)' }} />
+                  <text y={12.5} textAnchor="middle" fontSize={11} style={{ fill: 'var(--up)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                    {p.indicator} {fmt1(p.now)} ✓
+                  </text>
+                </g>
+              )
+            })}
           </>
         )}
       />

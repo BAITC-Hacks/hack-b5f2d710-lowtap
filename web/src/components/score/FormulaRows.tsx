@@ -2,6 +2,7 @@ import type { Components } from '../../types/api'
 import { MINUS, fmt2 } from '../../lib/format'
 import type { EngineState } from '../../engine/score'
 import { RULES } from '../../engine/catalog'
+import { useStruckPrevious } from '../../hooks/useClosedPairs'
 
 /** Формула ТЗ буквально: три слагаемых с текущими значениями и зачёркнутой базой, внизу — их сумма. */
 export function FormulaRows({ state, base, c }: { state: EngineState; base: EngineState; c: Components }) {
@@ -12,6 +13,8 @@ export function FormulaRows({ state, base, c }: { state: EngineState; base: Engi
     { label: '− N_crit', value: String(state.nCrit), baseValue: String(base.nCrit), term: c.crit_term, baseTerm: c.crit_term_base },
   ]
   const sum = c.d_avg_term + c.min_term + c.crit_term
+  // Снятие критической пары — in-place: «− N_crit 2» перечёркивается и меняется на «1».
+  const struck = useStruckPrevious(state.nCrit)
 
   return (
     <section className="num text-[12px]" aria-label="Формула Score">
@@ -19,12 +22,22 @@ export function FormulaRows({ state, base, c }: { state: EngineState; base: Engi
         <tbody>
           {rows.map((r) => {
             const changed = r.value !== r.baseValue
+            const closing = r.label === '− N_crit' && struck !== null
             return (
               <tr key={r.label} className="h-[18px]">
                 <td className="text-ink-2">{r.label}</td>
                 <td className="text-right">
-                  {r.value}
-                  {changed && <span className="ml-1.5 text-[10px] text-ink-2 line-through">{r.baseValue}</span>}
+                  {closing ? (
+                    <>
+                      <span className="mr-1.5 text-down line-through">{struck}</span>
+                      <span className="font-medium text-up">{r.value}</span>
+                    </>
+                  ) : (
+                    <>
+                      {r.value}
+                      {changed && <span className="ml-1.5 text-[10px] text-ink-2 line-through">{r.baseValue}</span>}
+                    </>
+                  )}
                 </td>
                 <td className="w-[62px] text-right" style={{ color: r.label === '− N_crit' && r.term < 0 ? 'var(--down)' : 'var(--ink)' }}>
                   {r.label === '− N_crit' ? `${MINUS}${fmt2(Math.abs(r.term))}` : `+${fmt2(r.term)}`}

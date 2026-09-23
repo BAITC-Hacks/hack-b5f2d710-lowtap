@@ -14,22 +14,27 @@ interface Props {
   invalidFull: boolean
   /** «Что если» при наведении: число рядом пунктиром, без анимации. */
   ghost?: { score: number; label: string } | null
+  /** Промежуточный квартал таймлайна (null — итог Q8). */
+  quarter?: number | null
 }
 
 /** Число Score докатывается spring'ом только при подтверждённом изменении набора. */
 export function AnimatedNumber({
   value,
   from,
+  instant = false,
   className,
   style,
 }: {
   value: number
   /** Досчитать от этого числа при появлении (Вердикт: от базы 52.56 до итога). */
   from?: number
+  /** Без spring (кварталы таймлайна: число следует за скраббером). */
+  instant?: boolean
   className?: string
   style?: React.CSSProperties
 }) {
-  const reduced = useReducedMotion()
+  const reduced = useReducedMotion() || instant
   const spring = useSpring(from ?? value, { stiffness: 120, damping: 20 })
   const text = useTransform(spring, (v) => fmt2(v))
   useEffect(() => {
@@ -43,11 +48,13 @@ export function AnimatedNumber({
   )
 }
 
-export function ScoreHero({ score, delta, status, count, invalidFull, ghost = null }: Props) {
-  const official = status === 'official'
+export function ScoreHero({ score, delta, status, count, invalidFull, ghost = null, quarter = null }: Props) {
+  const official = status === 'official' && quarter === null
   const required = RULES.decisions_required
   const caption =
-    status === 'base'
+    quarter !== null
+      ? `к кварталу ${quarter} · промежуточно`
+      : status === 'base'
       ? `база · 0/${required}`
       : official
         ? 'Astana Quality of Life Score'
@@ -63,6 +70,7 @@ export function ScoreHero({ score, delta, status, count, invalidFull, ghost = nu
       <div className="mt-1.5 flex items-baseline gap-3">
         <AnimatedNumber
           value={score}
+          instant={quarter !== null}
           className="font-display text-[clamp(44px,3.6vw,56px)] font-medium leading-none tracking-[-0.02em] tabular-nums"
           style={{
             color: official ? 'var(--ink)' : 'var(--ink-2)',
@@ -88,7 +96,7 @@ export function ScoreHero({ score, delta, status, count, invalidFull, ghost = nu
         )}
       </div>
       {ghost && <p className="num mt-1 truncate text-[10px] text-accent">что если: {ghost.label}</p>}
-      {!official && status !== 'base' && (
+      {!official && status !== 'base' && quarter === null && (
         <p className="mt-1.5 text-[10px] text-ink-2">Score по ТЗ считается только для набора из 5 решений по правилам.</p>
       )}
     </section>

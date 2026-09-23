@@ -1,12 +1,12 @@
 import { RotateCcw, Undo2 } from 'lucide-react'
-import { useEvaluation } from '../../hooks/useEvaluation'
+import { useDisplayState } from '../../hooks/useDisplayState'
 import { useScenario } from '../../store/scenario'
 import { useUi } from '../../store/ui'
 import { DecisionSockets } from './DecisionSockets'
 import { Presets } from './Presets'
 
 export function Header() {
-  const { state } = useEvaluation()
+  const { display: state } = useDisplayState()
   const backend = useUi((s) => s.backend)
   const canUndo = useScenario((s) => s.past.length > 0)
   const undo = useScenario((s) => s.undo)
