@@ -4,9 +4,7 @@ import { Catalog } from '../components/catalog/Catalog'
 import { Header } from '../components/header/Header'
 import { PultMap } from '../components/map/PultMap'
 import { ScoreRail } from '../components/score/ScoreRail'
-import { MemoPanel } from '../components/verdict/MemoPanel'
 import { useHotkeys } from '../lib/hotkeys'
-import { useAnalysis } from '../store/analysis'
 import { useScenario } from '../store/scenario'
 import { useUi } from '../store/ui'
 
@@ -18,8 +16,8 @@ export function Pult() {
   const handlers = useMemo(
     () => ({
       escape: () => {
-        if (useAnalysis.getState().open) useAnalysis.getState().close()
-        else useUi.getState().cancel()
+        useUi.getState().setGhost(null)
+        useUi.getState().cancel()
       },
       undo: () => useScenario.getState().undo(),
     }),
@@ -33,7 +31,6 @@ export function Pult() {
       <Catalog />
       <main className="relative overflow-hidden bg-panel" aria-label="Карта Астаны">
         <PultMap />
-        <MemoPanel />
       </main>
       <ScoreRail />
       <BottomPanel />

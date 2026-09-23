@@ -2,11 +2,14 @@ import { X } from 'lucide-react'
 import { MEASURE_BY_ID, RULES, districtName } from '../../engine/catalog'
 import { DIRECTION_COLOR } from '../../lib/colors'
 import { useScenario } from '../../store/scenario'
+import { useUi } from '../../store/ui'
 
 /** Пять гнёзд решений: «5 решений = 5 часов смены». */
 export function DecisionSockets() {
   const decisions = useScenario((s) => s.decisions)
   const remove = useScenario((s) => s.remove)
+  const recent = useUi((s) => s.recent)
+  const startPlacing = useUi((s) => s.startPlacing)
   const slots = Array.from({ length: Math.max(RULES.decisions_required, decisions.length) }, (_, i) => decisions[i])
 
   return (
@@ -28,12 +31,23 @@ export function DecisionSockets() {
           <li
             key={dec.measure_id}
             title={measure?.name_ru}
-            className="group relative flex h-[26px] w-[108px] items-center overflow-hidden rounded-chip border border-line bg-panel"
+            className="group relative flex h-[26px] w-[108px] items-center overflow-hidden rounded-chip border bg-panel"
+            style={{
+              borderColor: recent.includes(dec.measure_id) ? 'var(--accent)' : 'var(--line)',
+              boxShadow: recent.includes(dec.measure_id) ? '0 0 0 1px var(--accent)' : undefined,
+              transition: 'border-color 300ms var(--ease-data)',
+            }}
           >
             <span className="h-full w-[3px] shrink-0" style={{ background: measure ? DIRECTION_COLOR[measure.direction] : 'var(--down)' }} />
-            <span className="num truncate px-2 text-[11px] text-ink">
+            <button
+              type="button"
+              disabled={measure?.type !== 'district'}
+              onClick={() => startPlacing(dec.measure_id)}
+              title={measure?.type === 'district' ? 'Переставить в другой район' : measure?.name_ru}
+              className="num truncate px-2 text-left text-[11px] text-ink disabled:cursor-default"
+            >
               {dec.measure_id} · {districtName(dec.district)}
-            </span>
+            </button>
             <button
               type="button"
               onClick={() => remove(dec.measure_id)}

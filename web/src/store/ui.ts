@@ -29,6 +29,8 @@ interface UiState {
   bottomTab: 'timeline' | 'matrix'
   backend: BackendStatus
   health: Health | null
+  /** Меры, только что изменённые «Применить» рекомендации: гнёзда подсвечены ~1.5 с. */
+  recent: string[]
 
   setScreen: (screen: Screen) => void
   startPlacing: (measureId: string) => void
@@ -41,6 +43,7 @@ interface UiState {
   setQuarter: (quarter: number) => void
   toggleBottomTab: () => void
   setBackend: (status: BackendStatus, health?: Health | null) => void
+  flashRecent: (measureIds: string[]) => void
 }
 
 export const HORIZON = 8
@@ -55,6 +58,7 @@ export const useUi = create<UiState>()((set, get) => ({
   bottomTab: 'timeline',
   backend: 'unknown',
   health: null,
+  recent: [],
 
   setScreen: (screen) => set({ screen, mode: { kind: 'idle' }, ghost: null }),
   startPlacing: (measureId) => set({ mode: { kind: 'placing', measureId }, ghost: null }),
@@ -69,4 +73,8 @@ export const useUi = create<UiState>()((set, get) => ({
   setQuarter: (quarter) => set({ quarter: Math.max(0, Math.min(HORIZON, Math.round(quarter))) }),
   toggleBottomTab: () => set((s) => ({ bottomTab: s.bottomTab === 'timeline' ? 'matrix' : 'timeline' })),
   setBackend: (backend, health) => set((s) => ({ backend, health: health === undefined ? s.health : health })),
+  flashRecent: (recent) => {
+    set({ recent })
+    setTimeout(() => get().recent === recent && set({ recent: [] }), 1600)
+  },
 }))

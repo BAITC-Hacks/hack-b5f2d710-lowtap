@@ -12,12 +12,25 @@ interface Props {
   count: number
   /** Набор из 5 мер, но с нарушением правил: число только предварительное. */
   invalidFull: boolean
+  /** «Что если» при наведении: число рядом пунктиром, без анимации. */
+  ghost?: { score: number; label: string } | null
 }
 
 /** Число Score докатывается spring'ом только при подтверждённом изменении набора. */
-export function AnimatedNumber({ value, className, style }: { value: number; className?: string; style?: React.CSSProperties }) {
+export function AnimatedNumber({
+  value,
+  from,
+  className,
+  style,
+}: {
+  value: number
+  /** Досчитать от этого числа при появлении (Вердикт: от базы 52.56 до итога). */
+  from?: number
+  className?: string
+  style?: React.CSSProperties
+}) {
   const reduced = useReducedMotion()
-  const spring = useSpring(value, { stiffness: 120, damping: 20 })
+  const spring = useSpring(from ?? value, { stiffness: 120, damping: 20 })
   const text = useTransform(spring, (v) => fmt2(v))
   useEffect(() => {
     if (reduced) spring.jump(value)
@@ -30,7 +43,7 @@ export function AnimatedNumber({ value, className, style }: { value: number; cla
   )
 }
 
-export function ScoreHero({ score, delta, status, count, invalidFull }: Props) {
+export function ScoreHero({ score, delta, status, count, invalidFull, ghost = null }: Props) {
   const official = status === 'official'
   const required = RULES.decisions_required
   const caption =
@@ -59,12 +72,22 @@ export function ScoreHero({ score, delta, status, count, invalidFull }: Props) {
             textUnderlineOffset: '7px',
           }}
         />
-        {status !== 'base' && (
-          <span className="num rounded-chip px-1 text-[13px]" style={{ color: signColor(delta) }}>
-            {fmtSigned(delta)}
+        {ghost ? (
+          <span className="num flex flex-col text-[13px] leading-tight" title={`Что если: ${ghost.label}`}>
+            <span className="border-b border-dashed border-accent text-accent">→ {fmt2(ghost.score)}</span>
+            <span className="text-[10px]" style={{ color: signColor(ghost.score - score) }}>
+              {fmtSigned(ghost.score - score)}
+            </span>
           </span>
+        ) : (
+          status !== 'base' && (
+            <span className="num rounded-chip px-1 text-[13px]" style={{ color: signColor(delta) }}>
+              {fmtSigned(delta)}
+            </span>
+          )
         )}
       </div>
+      {ghost && <p className="num mt-1 truncate text-[10px] text-accent">что если: {ghost.label}</p>}
       {!official && status !== 'base' && (
         <p className="mt-1.5 text-[10px] text-ink-2">Score по ТЗ считается только для набора из 5 решений по правилам.</p>
       )}

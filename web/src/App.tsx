@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { probeBackend } from './lib/api'
 import { buildHash, parseHash } from './lib/permalink'
 import { Pult } from './screens/Pult'
+import { Verdict } from './screens/Verdict'
 import { useScenario } from './store/scenario'
 import { useUi } from './store/ui'
 
@@ -36,5 +37,6 @@ export default function App() {
     void probeBackend()
   }, [])
 
-  return <Pult />
+  const screen = useUi((s) => s.screen)
+  return screen === 'verdict' ? <Verdict /> : <Pult />
 }

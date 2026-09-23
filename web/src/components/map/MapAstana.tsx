@@ -13,9 +13,17 @@ const EASE = 'var(--ease-data)'
 export interface MapAstanaProps {
   state: EngineState
   base?: EngineState
+  /** «Что если» при наведении: карта перекрашивается в это состояние, изменённые районы — пунктиром. */
+  ghost?: EngineState | null
   indicator?: MapIndicator
-  /** Мини-карта без подписей и взаимодействия (Вердикт, Сравнение). */
+  /** Мини-карта без взаимодействия (Вердикт, Сравнение). */
   compact?: boolean
+  /** Подписи: имя + число + дельта, только число или ничего. */
+  labels?: 'full' | 'numbers' | 'none'
+  /** Подсветка района извне (hover на числе записки). */
+  highlight?: DistrictId | null
+  /** Без дельта-чипов под числами (их место занимают what-if ярлыки). */
+  hideDelta?: boolean
   selected?: DistrictId | null
   /** Районы, куда ставить нельзя (конфликт «в одном районе»): штриховка и блок клика. */
   blocked?: Partial<Record<DistrictId, string>>
@@ -36,10 +44,14 @@ function districtValue(state: EngineState, base: EngineState, indicator: MapIndi
 
 /** Хороплет настоящей Астаны: SVG, geoMercator + fitExtent; DOM целиком у React, заливка — CSS transition. */
 export function MapAstana({
-  state,
+  state: current,
   base = BASE_STATE,
+  ghost = null,
   indicator = 'D',
   compact = false,
+  labels = compact ? 'none' : 'full',
+  highlight = null,
+  hideDelta = false,
   selected = null,
   blocked = {},
   cursor = 'default',
@@ -54,6 +66,8 @@ export function MapAstana({
   const shapes = districtShapes()
   const river = useMemo(() => riverLine(shapes), [shapes])
   const layout = useMemo(() => (width && height ? fitMap(shapes, width, height, padding) : null), [shapes, width, height, padding])
+  const state = ghost ?? current
+  const ghostChanged = (i: number) => ghost !== null && Math.abs(ghost.d[i] - current.d[i]) >= 0.005
 
   const k = indicator === 'D' || indicator === 'delta' ? -1 : INDICATOR_CODES.indexOf(indicator)
   const critical = (i: number) =>
@@ -124,20 +138,25 @@ export function MapAstana({
             style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 1.5, opacity: 0.5, strokeLinejoin: 'round' }}
           />
 
-          {/* selection / hover */}
+          {/* selection / hover / ghost / highlight */}
           <g pointerEvents="none">
-            {shapes.map((s) =>
-              s.id === selected || (interactive && s.id === hovered) ? (
+            {shapes.map((s, i) =>
+              s.id === selected || s.id === highlight || (interactive && s.id === hovered) || ghostChanged(i) ? (
                 <path
                   key={s.id}
                   d={layout.path(s.main) ?? undefined}
-                  style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: s.id === selected ? 2.5 : 1.5 }}
+                  style={{
+                    fill: 'none',
+                    stroke: 'var(--accent)',
+                    strokeWidth: s.id === selected || s.id === highlight ? 2.5 : 1.5,
+                    strokeDasharray: ghostChanged(i) && s.id !== selected ? '4 2' : undefined,
+                  }}
                 />
               ) : null,
             )}
           </g>
 
-          {!compact && (
+          {labels !== 'none' && (
             <g pointerEvents="none">
               {DISTRICT_IDS.map((id, i) => (
                 <DistrictLabel
@@ -145,7 +164,13 @@ export function MapAstana({
                   id={id}
                   at={layout.anchors[id]}
                   value={districtValue(state, base, indicator, i)}
-                  delta={indicator === 'delta' ? null : districtValue(state, base, indicator, i) - districtValue(base, base, indicator, i)}
+                  delta={
+                    hideDelta || labels === 'numbers' || indicator === 'delta'
+                      ? null
+                      : districtValue(state, base, indicator, i) - districtValue(ghost ? current : base, base, indicator, i)
+                  }
+                  ghost={ghost !== null}
+                  nameless={labels === 'numbers'}
                   indicator={indicator}
                   fillColor={fill(i)}
                   blocked={blocked[id]}
@@ -166,12 +191,15 @@ interface LabelProps {
   at: [number, number]
   value: number
   delta: number | null
+  /** Дельта — к текущему набору в режиме «что если»: пунктир, opacity 0.6. */
+  ghost?: boolean
+  nameless?: boolean
   indicator: MapIndicator
   fillColor: string
   blocked?: string
 }
 
-function DistrictLabel({ id, at, value, delta, indicator, fillColor, blocked }: LabelProps) {
+function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, indicator, fillColor, blocked }: LabelProps) {
   const ink = indicator === 'delta' ? 'var(--ink)' : labelInk(value)
   const text = indicator === 'delta' ? fmtSigned(value) : indicator === 'D' ? fmt2(value) : fmt1(value)
   const showDelta = !blocked && delta !== null && Math.abs(delta) >= 0.005
@@ -181,15 +209,28 @@ function DistrictLabel({ id, at, value, delta, indicator, fillColor, blocked }: 
 
   return (
     <g transform={`translate(${at[0]},${at[1]})`} textAnchor="middle">
-      <text y={-5} fontSize={11} fontWeight={600} letterSpacing="0.10em" style={{ fill: ink, fontFamily: 'var(--font-sans)', ...halo }}>
-        {DISTRICT_BY_ID.get(id)!.name_ru.toUpperCase()}
-      </text>
-      <text y={10} fontSize={12} style={{ fill: ink, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', ...halo }}>
+      {!nameless && (
+        <text y={-5} fontSize={11} fontWeight={600} letterSpacing="0.10em" style={{ fill: ink, fontFamily: 'var(--font-sans)', ...halo }}>
+          {DISTRICT_BY_ID.get(id)!.name_ru.toUpperCase()}
+        </text>
+      )}
+      <text
+        y={nameless ? 4 : 10}
+        fontSize={12}
+        style={{ fill: ink, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', ...halo }}
+      >
         {text}
       </text>
       {showDelta && (
-        <g transform="translate(0,16)">
-          <rect x={-chipWidth / 2} y={0} width={chipWidth} height={14} rx={3} style={{ fill: 'var(--panel)' }} />
+        <g transform="translate(0,16)" opacity={ghost ? 0.6 : 1}>
+          <rect
+            x={-chipWidth / 2}
+            y={0}
+            width={chipWidth}
+            height={14}
+            rx={3}
+            style={{ fill: 'var(--panel)', stroke: ghost ? 'var(--accent)' : 'none', strokeDasharray: '4 2' }}
+          />
           <text y={10.5} fontSize={10} style={{ fill: signColor(delta!), fontFamily: 'var(--font-mono)' }}>
             {chip}
           </text>

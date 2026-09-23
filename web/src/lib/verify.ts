@@ -15,15 +15,20 @@ const CONSTANTS: number[] = [
   RULES.score.baseline,
   ...RULES.indicators.map((i) => i.weight),
   ...RULES.directions.map((d) => d.weight),
-  ...DISTRICTS.map((d) => d.pop_share),
-  ...MEASURES.map((m) => ((RULES.horizon_quarters - m.lag) / RULES.horizon_quarters) * 100),
+  ...DISTRICTS.flatMap((d) => [d.pop_share, d.pop_share * 100]),
+  ...RULES.synergies.map((s) => s.bonus),
+  ...MEASURES.flatMap((m) => {
+    const share = (RULES.horizon_quarters - m.lag) / RULES.horizon_quarters
+    return [m.lag, share, share * 100, m.cost]
+  }),
+  RULES.budget,
 ]
 
 const near = (a: number, b: number) => Math.abs(a - b) <= TOLERANCE
 
 /** Все числа, которые движок «знает» о сценарии (со знаком). */
 export function engineNumbers(result: EvalResult, recommendations: Recommendation[] = []): number[] {
-  const out: number[] = [result.score, result.baseline, result.delta, result.d_avg, result.min_district.d]
+  const out: number[] = [result.score, result.baseline, result.delta, result.d_avg, result.min_district.d, result.cost, result.remaining]
   if (result.percentile !== null) out.push(result.percentile, 100 - result.percentile)
   const c = result.components
   out.push(c.d_avg_term, c.min_term, c.crit_term, c.d_avg_term_base, c.min_term_base, c.crit_term_base)

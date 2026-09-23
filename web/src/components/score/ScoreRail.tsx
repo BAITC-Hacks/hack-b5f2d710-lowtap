@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { RULES } from '../../engine/catalog'
 import { BASE_STATE, formulaComponents } from '../../engine/score'
 import { useEvaluation } from '../../hooks/useEvaluation'
+import { useGhost } from '../../hooks/useGhost'
 import { useAnalysis } from '../../store/analysis'
 import { BudgetTicks } from './BudgetTicks'
 import { DistrictRows } from './DistrictRows'
@@ -14,6 +15,7 @@ import { ValidationStrip } from './ValidationStrip'
 export function ScoreRail() {
   const { state, status, decisions, cost, remaining, checks, violations } = useEvaluation()
   const run = useAnalysis((s) => s.run)
+  const ghost = useGhost()
   const official = status === 'official'
   const over = cost - RULES.budget
   const invalidFull = decisions.length >= RULES.decisions_required && !official
@@ -44,7 +46,9 @@ export function ScoreRail() {
         <p className="mt-1 text-[9px] text-ink-2">остаток не влияет на Score</p>
       </section>
 
-      <ScoreHero score={state.score} delta={state.score - BASE_STATE.score} status={status} count={decisions.length} invalidFull={invalidFull} />
+      <ScoreHero score={state.score} delta={state.score - BASE_STATE.score} status={status} count={decisions.length} invalidFull={invalidFull}
+        ghost={ghost ? { score: ghost.state.score, label: ghost.label } : null}
+      />
       {official && <Percentile score={state.score} />}
 
       <FormulaRows state={state} base={BASE_STATE} c={formulaComponents(state)} />
@@ -55,7 +59,7 @@ export function ScoreRail() {
         <button
           type="button"
           disabled={!official}
-          onClick={() => run('calc', decisions)}
+          onClick={() => void run('calc', decisions)}
           title={official ? 'Локальный движок + записка по шаблону' : reason}
           className="h-9 flex-1 rounded-chip border border-accent text-[13px] font-medium text-accent disabled:cursor-not-allowed disabled:border-line disabled:text-ink-2"
         >
@@ -64,7 +68,7 @@ export function ScoreRail() {
         <button
           type="button"
           disabled={!official}
-          onClick={() => run('ai', decisions)}
+          onClick={() => void run('ai', decisions)}
           title={official ? 'AI-анализ сценария' : reason}
           className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-chip bg-accent text-[13px] font-medium text-panel disabled:cursor-not-allowed disabled:bg-line disabled:text-ink-2"
         >

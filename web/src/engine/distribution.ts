@@ -12,6 +12,12 @@ export const DISTRIBUTION: ClientDistribution | null = distribution
  */
 export function percentileOf(score: number, dist: ClientDistribution | null = DISTRIBUTION): number | null {
   if (!dist) return null
+  // У вершины распределения таблица грубая, зато top20 знает эти планы поимённо — считаем точно.
+  const top = dist.top20
+  if (top.length && score >= top[top.length - 1].score - 1e-9) {
+    const atOrAbove = top.filter((p) => p.score >= score - 5e-11).length
+    return (100 * (dist.count - atOrAbove)) / dist.count
+  }
   const { start, step, cum } = dist.fine
   const x = (score - start) / step
   if (x <= 0) return 0

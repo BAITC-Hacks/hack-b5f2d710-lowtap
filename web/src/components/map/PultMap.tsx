@@ -1,43 +1,68 @@
-import { useState } from 'react'
-import { DISTRICT_BY_ID, MEASURE_BY_ID, RULES } from '../../engine/catalog'
+import { X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { DISTRICT_BY_ID, MEASURE_BY_ID, RULES, districtName } from '../../engine/catalog'
+import { effectShare } from '../../engine/score'
 import { districtConflict } from '../../engine/validate'
+import { whatIf } from '../../engine/whatif'
 import { useEvaluation } from '../../hooks/useEvaluation'
+import { useGhost } from '../../hooks/useGhost'
 import { fmt1, fmt2, fmtShare } from '../../lib/format'
+import { districtShapes } from '../../lib/geo'
 import { useScenario } from '../../store/scenario'
 import { useUi } from '../../store/ui'
 import { DISTRICT_IDS, INDICATOR_CODES, type DistrictId } from '../../types/data'
 import { MapAstana } from './MapAstana'
 import { MapLegend } from './MapLegend'
+import { Pins, type PinTarget } from './Pins'
+import { WhatIfLabels } from './WhatIfLabels'
 
-/** Карта Пульта: выбор района, постановка районной меры кликом, hover-карточка района. */
+/**
+ * Карта Пульта: выбор района, режим постановки с what-if на 5 районах (несовместимые районы
+ * заблокированы), ghost-превью при наведении, пины поставленных мер с попапом «Переставить / Снять».
+ */
 export function PultMap() {
   const { state, decisions } = useEvaluation()
+  const ghost = useGhost()
   const place = useScenario((s) => s.place)
   const mode = useUi((s) => s.mode)
   const indicator = useUi((s) => s.indicator)
   const selected = useUi((s) => s.selectedDistrict)
   const selectDistrict = useUi((s) => s.selectDistrict)
   const cancel = useUi((s) => s.cancel)
+  const setGhost = useUi((s) => s.setGhost)
   const [hovered, setHovered] = useState<DistrictId | null>(null)
   const [pointer, setPointer] = useState<[number, number]>([0, 0])
+  const [pinned, setPopover] = useState<PinTarget | null>(null)
+  const shapes = districtShapes()
 
   const placing = mode.kind === 'placing' ? MEASURE_BY_ID.get(mode.measureId) : undefined
-  const others = placing ? decisions.filter((d) => d.measure_id !== placing.id) : decisions
+  const options = useMemo(() => (placing ? whatIf(decisions, placing.id) : []), [placing, decisions])
   const blocked: Partial<Record<DistrictId, string>> = {}
   if (placing) {
+    const others = decisions.filter((d) => d.measure_id !== placing.id)
     for (const id of DISTRICT_IDS) {
       const reason = districtConflict(others, placing.id, id)
       if (reason) blocked[id] = reason
     }
   }
 
+  // Попап пина живёт только вне постановки и проигрывания.
+  const popover = mode.kind === 'idle' ? pinned : null
+
   function click(id: DistrictId) {
+    setPopover(null)
     if (placing) {
       place(placing.id, id)
+      setGhost(null)
       cancel()
     } else {
       selectDistrict(id)
     }
+  }
+
+  function hover(id: DistrictId | null) {
+    setHovered(id)
+    if (placing) setGhost(id && !blocked[id] ? { measureId: placing.id, district: id } : null)
   }
 
   return (
@@ -50,13 +75,21 @@ export function PultMap() {
     >
       <MapAstana
         state={state}
+        ghost={ghost?.state ?? null}
         indicator={indicator}
         selected={selected}
         blocked={blocked}
+        hideDelta={Boolean(placing)}
         cursor={placing ? 'crosshair' : 'default'}
         onDistrictClick={click}
-        onDistrictHover={setHovered}
-        padding={[36, 40, 80, 40]}
+        onDistrictHover={hover}
+        padding={[56, 40, 80, 40]}
+        overlay={(layout) => (
+          <>
+            <Pins layout={layout} shapes={shapes} decisions={decisions} onPinClick={placing ? undefined : setPopover} />
+            {placing && <WhatIfLabels layout={layout} shapes={shapes} options={options} />}
+          </>
+        )}
       />
 
       {placing && (
@@ -66,8 +99,63 @@ export function PultMap() {
         </div>
       )}
 
-      {hovered && <DistrictHoverCard id={hovered} at={pointer} />}
+      {hovered && !popover && <DistrictHoverCard id={hovered} at={pointer} />}
+      {popover && <PinPopover pin={popover} onClose={() => setPopover(null)} />}
       <MapLegend />
+    </div>
+  )
+}
+
+function PinPopover({ pin, onClose }: { pin: PinTarget; onClose: () => void }) {
+  const decisions = useScenario((s) => s.decisions)
+  const remove = useScenario((s) => s.remove)
+  const startPlacing = useUi((s) => s.startPlacing)
+  const measure = MEASURE_BY_ID.get(pin.measureId)!
+  const decision = decisions.find((d) => d.measure_id === pin.measureId)
+  if (!decision) return null
+  const share = effectShare(measure.lag)
+  const effects = Object.entries(measure.effects)
+    .map(([code, v]) => `${code} ${v! * share > 0 ? '+' : ''}${fmt1(v! * share)}`)
+    .join(' · ')
+
+  return (
+    <div
+      className="absolute z-30 w-[260px] rounded-chip border border-line bg-panel p-3 text-[12px]"
+      style={{ left: Math.max(8, pin.x - 130), top: pin.y + 18 }}
+    >
+      <button type="button" onClick={onClose} aria-label="Закрыть" className="absolute right-2 top-2 text-ink-2 hover:text-ink">
+        <X size={14} />
+      </button>
+      <div className="pr-5 font-medium">
+        <span className="num text-accent">{measure.id}</span> {measure.name_ru}
+      </div>
+      <div className="num mt-1 text-[11px] text-ink-2">
+        {districtName(decision.district)} · <span className="text-gold">{measure.cost} у.е.</span> · лаг {measure.lag} · {effects}
+      </div>
+      <div className="mt-2.5 flex gap-2">
+        {measure.type === 'district' && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              startPlacing(measure.id)
+            }}
+            className="h-7 flex-1 rounded-chip border border-accent text-[12px] font-medium text-accent"
+          >
+            Переставить
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            onClose()
+            remove(measure.id)
+          }}
+          className="h-7 flex-1 rounded-chip border border-line text-[12px] text-ink hover:border-down hover:text-down"
+        >
+          Снять
+        </button>
+      </div>
     </div>
   )
 }

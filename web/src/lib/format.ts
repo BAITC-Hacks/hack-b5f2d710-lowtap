@@ -31,9 +31,10 @@ export function fmtCost(x: number): string {
   return Math.round(x).toString()
 }
 
-/** Проценты: 99.9234 → «99.92%». */
+/** Проценты: 99.9234 → «99.92%»; у самой вершины (> 99.99) — больше знаков, чтобы не округлить в «100%». */
 export function fmtPct(x: number, digits = 2): string {
-  return `${fixed(x, digits)}%`
+  const d = x > 99.99 && x < 100 ? Math.max(digits, 4) : digits
+  return `${fixed(x, d)}%`
 }
 
 /** Доля населения: 0.27 → «27%». */
