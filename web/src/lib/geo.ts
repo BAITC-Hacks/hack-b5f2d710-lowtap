@@ -55,8 +55,17 @@ export function districtShapes(): DistrictShape[] {
 export interface MapLayout {
   projection: GeoProjection
   path: GeoPath
-  /** Точка подписи и пинов — центроид крупнейшего полигона, в пикселях. */
+  /** Точка подписи и пинов — центроид крупнейшего полигона (или LABEL_POINTS), в пикселях. */
   anchors: Record<DistrictId, [number, number]>
+}
+
+/**
+ * Точки подписи там, где центроид неудачен: у Есиля он лежит у самой границы с Нурой,
+ * и плашки двух районов налезают друг на друга. Координаты — lon/lat внутри района.
+ */
+const LABEL_POINTS: Partial<Record<DistrictId, [number, number]>> = {
+  esil: [71.5054, 51.0017],
+  nura: [71.308, 51.0549],
 }
 
 /** Отступ: одно число или [сверху, справа, снизу, слева]. */
@@ -74,7 +83,12 @@ export function fitMap(shapes: DistrictShape[], width: number, height: number, p
     frame,
   )
   const path = geoPath(projection)
-  const anchors = Object.fromEntries(shapes.map((s) => [s.id, path.centroid(s.main)])) as Record<DistrictId, [number, number]>
+  const anchors = Object.fromEntries(
+    shapes.map((s) => {
+      const point = LABEL_POINTS[s.id]
+      return [s.id, (point && projection(point)) ?? path.centroid(s.main)]
+    }),
+  ) as Record<DistrictId, [number, number]>
   return { projection, path, anchors }
 }
 

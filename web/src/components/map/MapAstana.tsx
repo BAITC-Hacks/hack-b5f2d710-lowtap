@@ -171,6 +171,7 @@ export function MapAstana({
                   }
                   ghost={ghost !== null}
                   nameless={labels === 'numbers'}
+                  critical={critical(i)}
                   indicator={indicator}
                   fillColor={fill(i)}
                   blocked={blocked[id]}
@@ -194,13 +195,22 @@ interface LabelProps {
   /** Дельта — к текущему набору в режиме «что если»: пунктир, opacity 0.6. */
   ghost?: boolean
   nameless?: boolean
+  /** В районе есть показатель < 40: черта плашки красная. */
+  critical?: boolean
   indicator: MapIndicator
   fillColor: string
   blocked?: string
 }
 
-function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, indicator, fillColor, blocked }: LabelProps) {
+/** Геометрия плашки района относительно центроида: пины — выше, чипы и ярлыки — ниже. */
+const PLATE_TOP = -26
+const PLATE_BOTTOM = 20
+
+function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, critical = false, indicator, fillColor, blocked }: LabelProps) {
   const lang = useUi((s) => s.lang)
+  if (!nameless) {
+    return <DistrictPlate {...{ id, at, value, delta, ghost, critical, indicator, blocked }} name={districtName(id, lang).toUpperCase()} />
+  }
   const ink = indicator === 'delta' ? 'var(--ink)' : labelInk(value)
   const text = indicator === 'delta' ? fmtSigned(value) : indicator === 'D' ? fmt2(value) : fmt1(value)
   const showDelta = !blocked && delta !== null && Math.abs(delta) >= 0.005
@@ -239,6 +249,82 @@ function DistrictLabel({ id, at, value, delta, ghost = false, nameless = false, 
       )}
       {blocked && (
         <g transform="translate(0,16)">
+          <rect x={-78} y={0} width={156} height={15} rx={3} style={{ fill: 'var(--panel)', stroke: 'var(--down)' }} />
+          <text y={11} fontSize={10} style={{ fill: 'var(--down)', fontFamily: 'var(--font-sans)' }}>
+            {blocked}
+          </text>
+        </g>
+      )}
+    </g>
+  )
+}
+
+interface PlateProps extends Omit<LabelProps, 'nameless' | 'fillColor'> {
+  name: string
+}
+
+/**
+ * Плашка района: имя капителью, число крупно (читается с проектора), снизу черта —
+ * красная, если в районе есть показатель < 40. Плоская: 1px рамка, без теней.
+ */
+function DistrictPlate({ at, value, delta, ghost = false, critical = false, indicator, blocked, name }: PlateProps) {
+  const text = indicator === 'delta' ? fmtSigned(value) : indicator === 'D' ? fmt2(value) : fmt1(value)
+  const showDelta = !blocked && delta !== null && Math.abs(delta) >= 0.005
+  const chip = showDelta ? (indicator === 'D' ? fmtSigned(delta) : fmtSigned(delta, 1)) : ''
+  const chipWidth = chip.length * 6.4 + 8
+  const width = Math.max(name.length * 7.4, text.length * 12.2) + 18
+  const valueColor = indicator === 'delta' ? signColor(value) : 'var(--ink)'
+
+  return (
+    <g transform={`translate(${at[0]},${at[1]})`} textAnchor="middle">
+      <rect
+        x={-width / 2}
+        y={PLATE_TOP}
+        width={width}
+        height={PLATE_BOTTOM - PLATE_TOP}
+        rx={3}
+        style={{
+          fill: 'var(--panel)',
+          stroke: ghost ? 'var(--accent)' : 'var(--line)',
+          strokeDasharray: ghost ? '4 2' : undefined,
+          transition: 'stroke 150ms var(--ease-data)',
+        }}
+      />
+      <rect
+        x={-width / 2}
+        y={PLATE_BOTTOM - 3}
+        width={width}
+        height={3}
+        style={{ fill: critical ? 'var(--down)' : 'var(--accent)', transition: 'fill 300ms var(--ease-data)' }}
+      />
+      <text y={PLATE_TOP + 14} fontSize={10} fontWeight={600} letterSpacing="0.10em" style={{ fill: 'var(--ink-2)', fontFamily: 'var(--font-sans)' }}>
+        {name}
+      </text>
+      <text
+        y={PLATE_BOTTOM - 8}
+        fontSize={20}
+        fontWeight={600}
+        style={{ fill: valueColor, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}
+      >
+        {text}
+      </text>
+      {showDelta && (
+        <g transform={`translate(0,${PLATE_BOTTOM + 4})`} opacity={ghost ? 0.6 : 1}>
+          <rect
+            x={-chipWidth / 2}
+            y={0}
+            width={chipWidth}
+            height={14}
+            rx={3}
+            style={{ fill: 'var(--panel)', stroke: ghost ? 'var(--accent)' : 'var(--line)', strokeDasharray: ghost ? '4 2' : undefined }}
+          />
+          <text y={10.5} fontSize={10} style={{ fill: signColor(delta!), fontFamily: 'var(--font-mono)' }}>
+            {chip}
+          </text>
+        </g>
+      )}
+      {blocked && (
+        <g transform={`translate(0,${PLATE_BOTTOM + 4})`}>
           <rect x={-78} y={0} width={156} height={15} rx={3} style={{ fill: 'var(--panel)', stroke: 'var(--down)' }} />
           <text y={11} fontSize={10} style={{ fill: 'var(--down)', fontFamily: 'var(--font-sans)' }}>
             {blocked}

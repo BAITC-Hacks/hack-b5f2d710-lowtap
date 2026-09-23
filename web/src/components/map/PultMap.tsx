@@ -91,6 +91,7 @@ export function PultMap() {
         padding={[56, 40, 80, 40]}
         overlay={(layout) => (
           <>
+            <Landmark at={layout.projection(BAITEREK)} />
             <Pins
               layout={layout}
               shapes={shapes}
@@ -104,7 +105,7 @@ export function PultMap() {
               // Несколько снятых пар одного района — столбиком, а не друг на друге.
               const row = closed.slice(0, i).filter((q) => q.district_id === p.district_id).length
               return (
-                <g key={`${p.district_id}.${p.indicator}`} transform={`translate(${x},${y + 36 + row * 20})`} pointerEvents="none">
+                <g key={`${p.district_id}.${p.indicator}`} transform={`translate(${x},${y + 42 + row * 20})`} pointerEvents="none">
                   <rect x={-40} y={0} width={80} height={17} rx={3} style={{ fill: 'var(--panel)', stroke: 'var(--up)' }} />
                   <text y={12.5} textAnchor="middle" fontSize={11} style={{ fill: 'var(--up)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
                     {p.indicator} {fmt1(p.now)} ✓
@@ -127,6 +128,29 @@ export function PultMap() {
       {popover && <PinPopover pin={popover} onClose={() => setPopover(null)} />}
       <MapLegend />
     </div>
+  )
+}
+
+/** Байтерек — ориентир, по которому жюри узнаёт город (левый берег, у Ишима). */
+const BAITEREK: [number, number] = [71.4305, 51.1283]
+
+function Landmark({ at }: { at: [number, number] | null }) {
+  if (!at) return null
+  const [x, y] = at
+  return (
+    <g transform={`translate(${x},${y})`} pointerEvents="none" aria-label="Байтерек">
+      <path d="M0 -6 L4 0 L0 6 L-4 0 Z" style={{ fill: 'var(--ink)', stroke: 'var(--panel)', strokeWidth: 1.5 }} />
+      <text
+        x={8}
+        y={3.5}
+        fontSize={10}
+        fontWeight={600}
+        letterSpacing="0.06em"
+        style={{ fill: 'var(--ink)', fontFamily: 'var(--font-sans)', paintOrder: 'stroke', stroke: 'var(--panel)', strokeWidth: 3, strokeLinejoin: 'round' }}
+      >
+        БАЙТЕРЕК
+      </text>
+    </g>
   )
 }
 

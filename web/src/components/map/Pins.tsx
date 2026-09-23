@@ -5,8 +5,8 @@ import { pinOffset, type DistrictShape, type MapLayout } from '../../lib/geo'
 import type { Decision } from '../../types/api'
 import { DISTRICT_IDS, type DistrictId } from '../../types/data'
 
-/** Пины над подписью района: центр на 30 px выше центроида. */
-const PIN_LIFT = -32
+/** Пины над плашкой района. */
+const PIN_LIFT = -40
 
 export interface PinTarget {
   measureId: string

@@ -17,7 +17,7 @@ export function WhatIfLabels({ layout, shapes, options }: { layout: MapLayout; s
         return (
           <motion.g key={o.district} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}>
             {o.best && <path d={layout.path(shape.main) ?? undefined} style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 2.5 }} />}
-            <g transform={`translate(${x},${y + 16})`}>
+            <g transform={`translate(${x},${y + 24})`}>
               <rect x={-w / 2} y={0} width={w} height={17} rx={3} style={{ fill: 'var(--panel)', stroke: o.best ? 'var(--accent)' : color, strokeWidth: 1 }} />
               <text y={12.5} textAnchor="middle" fontSize={12} style={{ fill: color, fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
                 {text}
