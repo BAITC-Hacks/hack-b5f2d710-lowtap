@@ -1,4 +1,4 @@
-import { RotateCcw, Undo2 } from 'lucide-react'
+import { Columns3, RotateCcw, Undo2 } from 'lucide-react'
 import { useDisplayState } from '../../hooks/useDisplayState'
 import { useScenario } from '../../store/scenario'
 import { useUi } from '../../store/ui'
@@ -12,6 +12,7 @@ export function Header() {
   const undo = useScenario((s) => s.undo)
   const reset = useScenario((s) => s.reset)
   const cancel = useUi((s) => s.cancel)
+  const setScreen = useUi((s) => s.setScreen)
   const crit = state.nCrit
 
   return (
@@ -34,6 +35,15 @@ export function Header() {
           КРИТ {crit}
         </span>
         <Presets />
+        <button
+          type="button"
+          onClick={() => setScreen('compare')}
+          title="Сравнение сценариев"
+          aria-label="Сравнение сценариев"
+          className="flex h-[26px] w-[26px] items-center justify-center rounded-chip border border-line text-ink hover:border-accent"
+        >
+          <Columns3 size={14} />
+        </button>
         <button
           type="button"
           onClick={undo}

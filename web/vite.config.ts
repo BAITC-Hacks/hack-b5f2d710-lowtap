@@ -58,6 +58,10 @@ export default defineConfig({
     // Датасет ТЗ живёт в корне репозитория (data/*.json) и общий с бэкендом.
     alias: { '@data': dataDir },
   },
+  build: {
+    // Один экран демо целиком офлайн: React + motion + d3 + границы районов + выжимка распределения ≈ 200 КБ gzip.
+    chunkSizeWarningLimit: 800,
+  },
   server: {
     fs: { allow: ['..'] },
     proxy: { '/api': 'http://localhost:8000' },

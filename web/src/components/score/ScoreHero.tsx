@@ -41,6 +41,14 @@ export function AnimatedNumber({
     if (reduced) spring.jump(value)
     else spring.set(value)
   }, [value, reduced, spring])
+  // Без анимации — просто число: spring при reduced motion не обязан доехать до цели.
+  if (reduced) {
+    return (
+      <span className={className} style={style}>
+        {fmt2(value)}
+      </span>
+    )
+  }
   return (
     <motion.span className={className} style={style}>
       {text}

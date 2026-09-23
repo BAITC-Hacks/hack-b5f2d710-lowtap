@@ -189,6 +189,13 @@ export function Verdict() {
             >
               <RefreshCw size={13} /> Переанализировать
             </button>
+            <button
+              type="button"
+              onClick={() => setScreen('compare')}
+              className="h-8 rounded-chip border border-line px-3 text-[12px] hover:border-accent"
+            >
+              Сравнить сценарии
+            </button>
             {mode === 'calc' && (
               <button
                 type="button"

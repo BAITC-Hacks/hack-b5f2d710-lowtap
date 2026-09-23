@@ -1,5 +1,6 @@
 import { Pause, Play } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
+import { DATA_HASH } from '../../engine/hash'
 import { timeline } from '../../engine/timeline'
 import { useDisplayState } from '../../hooks/useDisplayState'
 import { useEvaluation } from '../../hooks/useEvaluation'
@@ -80,6 +81,8 @@ export function BottomPanel() {
           эффект × max(0, q−L)/8 · в Q8 = формула ТЗ{status === 'preliminary' ? ' · предварительно' : ''}
           <br />
           Space play · Esc отмена · Ctrl+Z undo · M матрица
+          <br />
+          <span title="sha256 датасета ТЗ: у всех одинаковый старт">data {DATA_HASH}</span>
         </p>
       </div>
       <div className="relative min-h-0 min-w-0 px-2 py-1.5">
