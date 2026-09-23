@@ -8,7 +8,7 @@
 
 | Пульт | Вердикт | Сравнение |
 |---|---|---|
-| ![Пульт](docs/screenshots/f2-pult-pins.png) | ![Вердикт](docs/screenshots/f2-verdict-tryon.png) | ![Сравнение](docs/screenshots/f4-compare-1280.png) |
+| ![Пульт](docs/screenshots/f2-pult-pins.png) | ![Вердикт](docs/screenshots/verdict-server-guard.png) | ![Сравнение](docs/screenshots/f4-compare-1280.png) |
 
 ## Что внутри
 
