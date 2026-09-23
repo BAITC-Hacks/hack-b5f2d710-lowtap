@@ -1,6 +1,6 @@
 # Аким на 5 часов
 
-AI-симулятор бюджетных решений по районам Астаны. Хакатон, спец-трек Astana Innovations, кейс «Аким на 5 часов», команда lowtap. Сдача: тег `v1.0.1`.
+AI-симулятор бюджетных решений по районам Астаны. Хакатон, спец-трек Astana Innovations, кейс «Аким на 5 часов», команда lowtap. Сдача: тег `v1.0.2`.
 
 Пользователь получает 100 у.е., пять реальных районов Астаны на карте и каталог из 14 мер по пяти направлениям. Он принимает ровно пять решений, а приложение считает Astana Quality of Life Score по формуле ТЗ, показывает влияние на 50 показателей и пишет аналитическую записку с сильными сторонами, рисками, последствиями и рекомендациями.
 
@@ -32,7 +32,7 @@ test -f .env || cp .env.example .env
 docker compose up --build -d --wait
 ```
 
-Интерфейс: http://localhost:8000, Swagger: http://localhost:8000/docs. Образ собирает фронт на `node:24-alpine` и запускает FastAPI на `python:3.14-slim`. Остановка: `docker compose down`. HTTP-проверка собранного контейнера: `python scripts/container_smoke.py`.
+Интерфейс: http://localhost:8000, Swagger: http://localhost:8000/docs. Образ собирает фронт на `node:24-alpine` и запускает FastAPI на `python:3.14-slim`. Остановка: `docker compose down`. Если порт 8000 занят, задайте другой перед запуском: `$env:APP_PORT='8010'` в PowerShell или `APP_PORT=8010` в bash. HTTP-проверка собранного контейнера: `py -3 scripts/container_smoke.py` (bash: `python3 scripts/container_smoke.py`); при другом порте добавьте `--base-url http://127.0.0.1:8010`.
 
 ### Вариант 2. Локально, одно приложение на порту 8000
 
@@ -58,7 +58,7 @@ python3 -m venv .venv
 cd backend && ../.venv/bin/python -m uvicorn app.main:app --port 8000
 ```
 
-Интерфейс: http://localhost:8000, Swagger: http://localhost:8000/docs.
+Интерфейс: http://localhost:8000, Swagger: http://localhost:8000/docs. Сервер слушает 127.0.0.1; если `localhost` на Windows отвечает медленно из скриптов, обращайтесь к http://127.0.0.1:8000.
 
 ### Вариант 3. Только фронт, без Python
 
@@ -92,7 +92,7 @@ cp .env.example .env
 | `cd web; npx playwright install chromium; npm run e2e` | 2 passed: пресет «Пример ТЗ» даёт 56.54 и 95/100, невалидный бюджет даёт причину вместо Score. Порт задаётся переменной `E2E_PORT` (по умолчанию 5173) |
 | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | **298 passed**, 1 deselected (полный перебор запускается отдельно: `-m slow`) |
 | `cd backend; ..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json` | `Score 56.543`, `baseline 52.558`, `cost 95`, `n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1` |
-| `docker compose up --build -d --wait`, затем `python scripts/container_smoke.py` | health; 5 районов и 14 мер; распределение 694 395 / 20 003; example 56.543 / 95 / 0; HTTP 422; SSE; HTML; 5 из 5 demo-ответов из кэша |
+| `docker compose up --build -d --wait`, затем `py -3 scripts/container_smoke.py` | health; 5 районов и 14 мер; распределение 694 395 / 20 003; example 56.543 / 95 / 0; HTTP 422; SSE; HTML; 5 из 5 demo-ответов из кэша |
 | Swagger, `POST /api/evaluate` с телом `data/scenarios/invalid_budget.json` | HTTP 422, код `BUDGET_EXCEEDED`, сообщение «превышение на 29 у.е.» |
 | `POST /api/analyze` с телом `example_tz.json` без ключа | `provider: "cache"`, в трассе шаг `kind: "agent"`, `verified_numbers` 10 из 10; с `?provider=rules` записка по правилам, 21 из 21 |
 | `GET /api/config`, поле `data_hash` | `1172683703cf`; тот же хэш показан внизу Пульта |
