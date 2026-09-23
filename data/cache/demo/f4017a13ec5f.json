@@ -1,0 +1,277 @@
+{
+  "metadata": {
+    "data_hash": "1172683703cf",
+    "engine_version": "1.0.0",
+    "scenario_id": "f4017a13ec5f",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0"
+  },
+  "report": {
+    "summary": "План улучшает Score до 54.01, но сохраняет 2 критические пары в Нуре.",
+    "strengths": [
+      {
+        "text": "Индекс Есиля вырос на 5.80 п.п.",
+        "evidence": [
+          "F21"
+        ]
+      },
+      {
+        "text": "Мера M3 с лагом 4 квартала реализует 50% эффекта.",
+        "evidence": [
+          "F91",
+          "F92"
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "text": "Лаг меры M3 4 квартала; доля эффекта 0.50.",
+        "evidence": [
+          "F91",
+          "F92"
+        ]
+      },
+      {
+        "text": "Критические пары Нуры S1=38.00 и S2=35.00 не закрыты.",
+        "evidence": [
+          "F14",
+          "F15"
+        ]
+      }
+    ],
+    "consequences": [
+      {
+        "text": "Критические пары соцсферы и медицины в Нуре остаются.",
+        "evidence": [
+          "F14",
+          "F15"
+        ]
+      },
+      {
+        "text": "86% бюджета сосредоточено в Есиле, другие районы слабо улучшены.",
+        "evidence": [
+          "F47",
+          "F56",
+          "F66",
+          "F76",
+          "F86"
+        ]
+      }
+    ],
+    "tradeoffs": [
+      {
+        "text": "Выбор меры M3 с большим лагом замедляет эффект.",
+        "evidence": [
+          "F91"
+        ]
+      },
+      {
+        "text": "Перемещение меры M7 в Нуру снижает критические пары и повышает индекс.",
+        "evidence": [
+          "F14",
+          "F15"
+        ]
+      }
+    ],
+    "city_impact": [
+      {
+        "text": "Улучшена транспортная доступность и безопасность в Есиле.",
+        "evidence": [
+          "F23",
+          "F38"
+        ]
+      },
+      {
+        "text": "Недостаточное улучшение соцсферы и медицины в Нуре сохраняет неравенство.",
+        "evidence": [
+          "F14",
+          "F15"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "change": "Переместить M7 в Нуру, сохранить остальные меры.",
+        "decisions": [
+          {
+            "measure_id": "M3",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M7",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M10",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          }
+        ],
+        "rationale": "Снижает критические пары, повышает минимальный индекс.",
+        "score": 55.254465,
+        "delta": 2.696785,
+        "cost": 100,
+        "verified": true,
+        "invalid_reason": null
+      },
+      {
+        "change": "Переместить M8 в Нуру, остальные меры оставить.",
+        "decisions": [
+          {
+            "measure_id": "M3",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M7",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M10",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          }
+        ],
+        "rationale": "Улучшает соцсферу в Нуре, снижает критические пары.",
+        "score": 55.2238025,
+        "delta": 2.6661225,
+        "cost": 100,
+        "verified": true,
+        "invalid_reason": null
+      },
+      {
+        "change": "Заменить M8 на M9 в Нуре, остальные меры оставить.",
+        "decisions": [
+          {
+            "measure_id": "M3",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M7",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M9",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M10",
+            "district": "esil"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          }
+        ],
+        "rationale": "Снижает стоимость, сохраняет улучшения.",
+        "score": 55.1625175,
+        "delta": 2.6048375,
+        "cost": 90,
+        "verified": true,
+        "invalid_reason": null
+      }
+    ],
+    "provider": "llm",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0",
+    "trace": [
+      {
+        "n": 1,
+        "kind": "server",
+        "tool": "evaluate_scenario",
+        "input": {
+          "scenario_id": "f4017a13ec5f"
+        },
+        "output_summary": "Score 54.009; критических пар 2",
+        "ms": 2.3959000027389266,
+        "ok": true
+      },
+      {
+        "n": 2,
+        "kind": "server",
+        "tool": "build_facts",
+        "input": {
+          "scenario_id": "f4017a13ec5f"
+        },
+        "output_summary": "Сформировано фактов: 122",
+        "ms": 0.3097000007983297,
+        "ok": true
+      },
+      {
+        "n": 3,
+        "kind": "agent",
+        "tool": "best_neighbors",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M3",
+              "district": "esil"
+            },
+            {
+              "measure_id": "M7",
+              "district": "esil"
+            },
+            {
+              "measure_id": "M8",
+              "district": "esil"
+            },
+            {
+              "measure_id": "M10",
+              "district": "esil"
+            },
+            {
+              "measure_id": "M12",
+              "district": null
+            }
+          ],
+          "objective": "score",
+          "k": 3
+        },
+        "output_summary": "Проверено альтернатив: 3.",
+        "ms": 8.889400000043679,
+        "ok": true
+      },
+      {
+        "n": 4,
+        "kind": "server",
+        "tool": "agent_loop",
+        "input": {
+          "model": "gpt-4.1-mini"
+        },
+        "output_summary": "Получен отчёт агента; модель gpt-4.1-mini-2025-04-14; токены: вход 29128, выход 1447.",
+        "ms": 15849.254200002179,
+        "ok": true
+      },
+      {
+        "n": 5,
+        "kind": "server",
+        "tool": "guard_report",
+        "input": {
+          "scenario_id": "f4017a13ec5f"
+        },
+        "output_summary": "Подтверждено чисел: 5 из 5.",
+        "ms": 6.86909999785712,
+        "ok": true
+      }
+    ],
+    "verified_numbers": {
+      "total": 5,
+      "confirmed": 5,
+      "unverified": []
+    },
+    "cached": false
+  }
+}

@@ -1,0 +1,280 @@
+{
+  "metadata": {
+    "data_hash": "1172683703cf",
+    "engine_version": "1.0.0",
+    "scenario_id": "7017dea1b09b",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0"
+  },
+  "report": {
+    "summary": "Сценарий улучшает Score до 55.67, снижая критические пары с 2 до 1 при бюджете 61.00 у.е.",
+    "strengths": [
+      {
+        "text": "Рост индекса Нуры на 4.50 улучшает соцсферу и безопасность.",
+        "evidence": [
+          "F61",
+          "F79",
+          "F81"
+        ]
+      },
+      {
+        "text": "Закрыта критическая пара S1 в Нуре, число критических пар снижено с 2 до 1.",
+        "evidence": [
+          "F16",
+          "F10",
+          "F13"
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "text": "Критический показатель S2 в Нуре остаётся критическим 37.62, близок к порогу 40.",
+        "evidence": [
+          "F14"
+        ]
+      },
+      {
+        "text": "Лаг мер M4 и M9 составляет 2 и 1 квартал, замедляя эффект.",
+        "evidence": [
+          "F91",
+          "F97"
+        ]
+      }
+    ],
+    "consequences": [
+      {
+        "text": "Улучшена доступность поликлиник и школ в Нуре, но S2 требует внимания.",
+        "evidence": [
+          "F75",
+          "F72"
+        ]
+      },
+      {
+        "text": "Рост безопасности улиц и дорожного движения в Нуре повышает комфорт жителей.",
+        "evidence": [
+          "F79",
+          "F81"
+        ]
+      }
+    ],
+    "tradeoffs": [
+      {
+        "text": "Бюджет использован на 61.00 у.е., остаётся 39.00 у.е.",
+        "evidence": [
+          "F4",
+          "F5"
+        ]
+      },
+      {
+        "text": "Отсутствие мер транспорта снижает транспортные показатели Нуры.",
+        "evidence": [
+          "F63"
+        ]
+      }
+    ],
+    "city_impact": [
+      {
+        "text": "Повышение качества городской среды в Нуре и других районах за счёт мер безопасности и соцсферы.",
+        "evidence": [
+          "F79",
+          "F81"
+        ]
+      },
+      {
+        "text": "Улучшение цифровых сервисов города через M12 повышает скорость решения обращений.",
+        "evidence": [
+          "F114",
+          "F115",
+          "F116",
+          "F117",
+          "F118",
+          "F119"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "change": "Заменить M11 на M8 в Нуре, добавить M10, M12, M9, M4.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          },
+          {
+            "measure_id": "M4",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M9",
+            "district": "nura"
+          }
+        ],
+        "rationale": "Увеличение Score до 56.75, устранение критических пар, стоимость 71.00 у.е.",
+        "score": 56.746695,
+        "delta": 4.189015,
+        "cost": 71,
+        "verified": true,
+        "invalid_reason": null
+      },
+      {
+        "change": "Добавить M8 вместо M4, сохранить M10, M11, M12, M9 в Нуре.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M11",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M9",
+            "district": "nura"
+          }
+        ],
+        "rationale": "Score 56.57, критические пары отсутствуют, стоимость 66.00 у.е.",
+        "score": 56.572625,
+        "delta": 4.014945,
+        "cost": 66,
+        "verified": true,
+        "invalid_reason": null
+      },
+      {
+        "change": "Заменить M11 на M4, добавить M8, M9, M10, M12 в Нуре.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M11",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M4",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M9",
+            "district": "nura"
+          }
+        ],
+        "rationale": "Score 56.55, критические пары отсутствуют, стоимость 67.00 у.е.",
+        "score": 56.552275,
+        "delta": 3.994595,
+        "cost": 67,
+        "verified": true,
+        "invalid_reason": null
+      }
+    ],
+    "provider": "llm",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0",
+    "trace": [
+      {
+        "n": 1,
+        "kind": "server",
+        "tool": "evaluate_scenario",
+        "input": {
+          "scenario_id": "7017dea1b09b"
+        },
+        "output_summary": "Score 55.667; критических пар 1",
+        "ms": 263.64359999934095,
+        "ok": true
+      },
+      {
+        "n": 2,
+        "kind": "server",
+        "tool": "build_facts",
+        "input": {
+          "scenario_id": "7017dea1b09b"
+        },
+        "output_summary": "Сформировано фактов: 122",
+        "ms": 0.3262999998696614,
+        "ok": true
+      },
+      {
+        "n": 3,
+        "kind": "agent",
+        "tool": "best_neighbors",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M4",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M9",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M10",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M11",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M12",
+              "district": null
+            }
+          ],
+          "objective": "score",
+          "k": 3
+        },
+        "output_summary": "Проверено альтернатив: 3.",
+        "ms": 13.788399999612011,
+        "ok": true
+      },
+      {
+        "n": 4,
+        "kind": "server",
+        "tool": "agent_loop",
+        "input": {
+          "model": "gpt-4.1-mini"
+        },
+        "output_summary": "Получен отчёт агента; модель gpt-4.1-mini-2025-04-14; токены: вход 28858, выход 1469.",
+        "ms": 16377.321399999346,
+        "ok": true
+      },
+      {
+        "n": 5,
+        "kind": "server",
+        "tool": "guard_report",
+        "input": {
+          "scenario_id": "7017dea1b09b"
+        },
+        "output_summary": "Подтверждено чисел: 12 из 12.",
+        "ms": 6.801499999710359,
+        "ok": true
+      }
+    ],
+    "verified_numbers": {
+      "total": 12,
+      "confirmed": 12,
+      "unverified": []
+    },
+    "cached": false
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "metadata": {
+    "data_hash": "1172683703cf",
+    "engine_version": "1.0.0",
+    "scenario_id": "9562c4fabba0",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0"
+  },
+  "report": {
+    "summary": "Сценарий улучшает Score до 52.04, но сохраняет 3 критические пары, включая Нуру.",
+    "strengths": [
+      {
+        "text": "Итоговый Score 52.04 близок к базовому 52.56.",
+        "evidence": [
+          "F1",
+          "F2"
+        ]
+      },
+      {
+        "text": "Индекс Байконура вырос на 3.89 до 60.52.",
+        "evidence": [
+          "F49",
+          "F50"
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "text": "M13: лаг 4.00 квартала; доля эффекта 0.50.",
+        "evidence": [
+          "F105",
+          "F106"
+        ]
+      }
+    ],
+    "consequences": [
+      {
+        "text": "Критические пары Нуры S1=38.00 и S2=35.00 сохраняются.",
+        "evidence": [
+          "F15",
+          "F16"
+        ]
+      },
+      {
+        "text": "Число критических пар выросло с 2 до 3 после мер.",
+        "evidence": [
+          "F10",
+          "F13"
+        ]
+      }
+    ],
+    "tradeoffs": [
+      {
+        "text": "Стоимость 80.00 у.е., остаток бюджета 20.00 у.е.",
+        "evidence": [
+          "F4",
+          "F5"
+        ]
+      },
+      {
+        "text": "В Байконуре 87.5% затрат при 13% населения.",
+        "evidence": [
+          "F69",
+          "F70",
+          "F71"
+        ]
+      }
+    ],
+    "city_impact": [
+      {
+        "text": "Жители Нуры остаются с критическими проблемами соцсферы.",
+        "evidence": [
+          "F15",
+          "F16"
+        ]
+      },
+      {
+        "text": "Байконур получает улучшения в безопасности и сервисах.",
+        "evidence": [
+          "F49",
+          "F50",
+          "F61"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "change": "Добавить M3 в Нуру, увеличить бюджет до 100 у.е.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "baikonur"
+          },
+          {
+            "measure_id": "M13",
+            "district": "baikonur"
+          },
+          {
+            "measure_id": "M3",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "baikonur"
+          },
+          {
+            "measure_id": "M9",
+            "district": "baikonur"
+          }
+        ],
+        "rationale": "M3 улучшит транспорт и повысит индекс Нуры.",
+        "score": 53.74379625,
+        "delta": 1.18611625,
+        "cost": 100,
+        "verified": true,
+        "invalid_reason": null
+      }
+    ],
+    "provider": "llm",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0",
+    "trace": [
+      {
+        "n": 1,
+        "kind": "server",
+        "tool": "evaluate_scenario",
+        "input": {
+          "scenario_id": "9562c4fabba0"
+        },
+        "output_summary": "Score 52.041; критических пар 3",
+        "ms": 280.7075000018813,
+        "ok": true
+      },
+      {
+        "n": 2,
+        "kind": "server",
+        "tool": "build_facts",
+        "input": {
+          "scenario_id": "9562c4fabba0"
+        },
+        "output_summary": "Сформировано фактов: 112",
+        "ms": 0.24389999816776253,
+        "ok": true
+      },
+      {
+        "n": 3,
+        "kind": "agent",
+        "tool": "best_neighbors",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M8",
+              "district": "baikonur"
+            },
+            {
+              "measure_id": "M9",
+              "district": "baikonur"
+            },
+            {
+              "measure_id": "M10",
+              "district": "baikonur"
+            },
+            {
+              "measure_id": "M11",
+              "district": "almaty"
+            },
+            {
+              "measure_id": "M13",
+              "district": "baikonur"
+            }
+          ],
+          "objective": "score",
+          "k": 3
+        },
+        "output_summary": "Проверено альтернатив: 3.",
+        "ms": 18.83809999708319,
+        "ok": true
+      },
+      {
+        "n": 4,
+        "kind": "agent",
+        "tool": "evaluate_scenario",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M10",
+              "district": "baikonur"
+            },
+            {
+              "measure_id": "M13",
+              "district": "baikonur"
+            },
+            {
+              "measure_id": "M3",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M8",
+              "district": "baikonur"
+            },
+            {
+              "measure_id": "M9",
+              "district": "baikonur"
+            }
+          ]
+        },
+        "output_summary": "Движок рассчитал Score: 53.74.",
+        "ms": 3.843300000880845,
+        "ok": true
+      },
+      {
+        "n": 5,
+        "kind": "server",
+        "tool": "agent_loop",
+        "input": {
+          "model": "gpt-4.1-mini"
+        },
+        "output_summary": "Получен отчёт агента; модель gpt-4.1-mini-2025-04-14; токены: вход 39176, выход 1318.",
+        "ms": 44941.257399997994,
+        "ok": true
+      },
+      {
+        "n": 6,
+        "kind": "server",
+        "tool": "guard_report",
+        "input": {
+          "scenario_id": "9562c4fabba0"
+        },
+        "output_summary": "Подтверждено чисел: 12 из 12.",
+        "ms": 2.8542000000015832,
+        "ok": true
+      }
+    ],
+    "verified_numbers": {
+      "total": 12,
+      "confirmed": 12,
+      "unverified": []
+    },
+    "cached": false
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "metadata": {
+    "data_hash": "1172683703cf",
+    "engine_version": "1.0.0",
+    "scenario_id": "1a19e91138e6",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0"
+  },
+  "report": {
+    "summary": "Сценарий улучшил Score до 57.24, закрыв все критические показатели Нуры.",
+    "strengths": [
+      {
+        "text": "Score улучшен до 57.24, выше базового 52.56.",
+        "evidence": [
+          "F1",
+          "F2"
+        ]
+      },
+      {
+        "text": "Критические показатели в Нуре закрыты, их было 2.",
+        "evidence": [
+          "F7",
+          "F10",
+          "F14"
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "text": "M3 имеет лаг 4 квартала, эффект реализован на 50%.",
+        "evidence": [
+          "F136",
+          "F137"
+        ]
+      }
+    ],
+    "consequences": [
+      {
+        "text": "Критические пары S1 и S2 в Нуре закрыты (38.00 и 35.00).",
+        "evidence": [
+          "F15",
+          "F16"
+        ]
+      }
+    ],
+    "tradeoffs": [
+      {
+        "text": "Бюджет почти исчерпан — осталось 2.00 у.е.",
+        "evidence": [
+          "F4",
+          "F5"
+        ]
+      }
+    ],
+    "city_impact": [
+      {
+        "text": "Жители Нуры получают улучшение соцсферы и транспорта.",
+        "evidence": [
+          "F97",
+          "F109",
+          "F112"
+        ]
+      },
+      {
+        "text": "Доступность услуг в Нуре повысилась, индексы S1 и S2 выросли.",
+        "evidence": [
+          "F108",
+          "F111"
+        ]
+      }
+    ],
+    "recommendations": [],
+    "provider": "llm",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0",
+    "trace": [
+      {
+        "n": 1,
+        "kind": "server",
+        "tool": "evaluate_scenario",
+        "input": {
+          "scenario_id": "1a19e91138e6"
+        },
+        "output_summary": "Score 57.237; критических пар 0",
+        "ms": 234.44300000119256,
+        "ok": true
+      },
+      {
+        "n": 2,
+        "kind": "server",
+        "tool": "build_facts",
+        "input": {
+          "scenario_id": "1a19e91138e6"
+        },
+        "output_summary": "Сформировано фактов: 161",
+        "ms": 0.5424000009952579,
+        "ok": true
+      },
+      {
+        "n": 3,
+        "kind": "agent",
+        "tool": "best_neighbors",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M2",
+              "district": null
+            },
+            {
+              "measure_id": "M3",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M8",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M9",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M14",
+              "district": null
+            }
+          ],
+          "objective": "score",
+          "k": 3
+        },
+        "output_summary": "Проверено альтернатив: 3.",
+        "ms": 9.495100002823165,
+        "ok": true
+      },
+      {
+        "n": 4,
+        "kind": "server",
+        "tool": "best_neighbors",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M2",
+              "district": null
+            },
+            {
+              "measure_id": "M3",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M8",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M9",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M14",
+              "district": null
+            }
+          ],
+          "objective": "score",
+          "k": 3
+        },
+        "output_summary": "Требуется исправить ограничения, evidence или отсутствие улучшения; подготовлены допустимые улучшения.",
+        "ms": 11.536599999089958,
+        "ok": true
+      },
+      {
+        "n": 5,
+        "kind": "server",
+        "tool": "revise_report",
+        "input": {
+          "attempt": 1
+        },
+        "output_summary": "Получена исправленная версия; далее общий guard.",
+        "ms": 4951.158600000781,
+        "ok": true
+      },
+      {
+        "n": 6,
+        "kind": "server",
+        "tool": "agent_loop",
+        "input": {
+          "model": "gpt-4.1-mini"
+        },
+        "output_summary": "Получен отчёт агента; модель gpt-4.1-mini-2025-04-14; токены: вход 45331, выход 2156.",
+        "ms": 25081.947300001048,
+        "ok": true
+      },
+      {
+        "n": 7,
+        "kind": "server",
+        "tool": "guard_report",
+        "input": {
+          "scenario_id": "1a19e91138e6"
+        },
+        "output_summary": "Подтверждено чисел: 6 из 6.",
+        "ms": 0.50560000090627,
+        "ok": true
+      }
+    ],
+    "verified_numbers": {
+      "total": 6,
+      "confirmed": 6,
+      "unverified": []
+    },
+    "cached": false
+  }
+}

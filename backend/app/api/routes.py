@@ -1,4 +1,6 @@
+import asyncio
 import json
+from contextlib import suppress
 from typing import Literal
 
 from fastapi import APIRouter, Query, Request
@@ -16,7 +18,7 @@ from app.engine.models import (
     Scenario,
     ValidationResult,
 )
-from app.engine.scoring import evaluate, score_decisions
+from app.engine.scoring import InvalidScenario, evaluate, score_decisions
 from app.engine.validator import validate
 
 router = APIRouter(prefix="/api")
@@ -64,12 +66,42 @@ def evaluate_scenario(scenario: Scenario) -> EvalResult:
     return evaluate(scenario)
 
 
-def report_events(report: AnalysisReport):
-    """Only engine/server steps exist in B2; B4 adds live tool progress."""
-    for step in report.trace:
-        yield f"event: trace\ndata: {json.dumps(step.model_dump(), ensure_ascii=False)}\n\n"
-    yield f"event: report\ndata: {json.dumps(report.model_dump(), ensure_ascii=False)}\n\n"
-    yield 'event: done\ndata: {"ok":true}\n\n'
+def sse_event(name: str, payload: dict) -> str:
+    encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+    return f"event: {name}\ndata: {encoded}\n\n"
+
+
+async def analysis_events(scenario: Scenario, settings, semaphore, *, provider, cache):
+    """Publish each completed step while the model is still running."""
+    queue = asyncio.Queue()
+
+    async def on_trace(step):
+        await queue.put(("trace", step.model_dump()))
+
+    async def produce():
+        try:
+            report = await analyze(
+                scenario, settings, semaphore, provider=provider, cache=cache, on_trace=on_trace
+            )
+            await queue.put(("report", report.model_dump()))
+        finally:
+            await queue.put(("done", {"ok": True}))
+
+    task = asyncio.create_task(produce())
+    try:
+        while True:
+            name, payload = await queue.get()
+            if name == "done":
+                # Unexpected application errors propagate instead of a fake done.
+                await task
+                yield sse_event(name, payload)
+                return
+            yield sse_event(name, payload)
+    finally:
+        if not task.done():
+            task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 @router.post(
@@ -81,17 +113,26 @@ async def analyze_scenario(
     provider: Literal["auto", "rules"] = "auto",
     stream: int = Query(default=0, ge=0, le=1),
 ):
-    report = await analyze(
-        scenario,
-        request.app.state.settings,
-        request.app.state.analyze_semaphore,
-        provider=provider,
-        cache=request.app.state.report_cache,
-    )
+    state = request.app.state
     if stream:
+        validation = validate(scenario)
+        if not validation.ok:
+            raise InvalidScenario(validation)
         return StreamingResponse(
-            report_events(report),
+            analysis_events(
+                scenario,
+                state.settings,
+                state.analyze_semaphore,
+                provider=provider,
+                cache=state.report_cache,
+            ),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
-    return report
+    return await analyze(
+        scenario,
+        state.settings,
+        state.analyze_semaphore,
+        provider=provider,
+        cache=state.report_cache,
+    )

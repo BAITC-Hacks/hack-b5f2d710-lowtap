@@ -1,5 +1,6 @@
 """Small provider adapters; scenario arithmetic remains in the engine."""
 
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
 from openai import AsyncOpenAI
@@ -30,7 +31,13 @@ class LLMClient(Protocol):
         ...
 
     async def tool_loop(
-        self, system: str, user: str, tools: list[dict], max_rounds: int
+        self,
+        system: str,
+        user: str,
+        tools: list[dict],
+        max_rounds: int,
+        *,
+        on_trace: Callable[[TraceStep], Awaitable[None]] | None = None,
     ) -> tuple[BaseModel, list[TraceStep]]:
         """Run the bounded engine-tool loop introduced in B4."""
         ...
@@ -42,6 +49,7 @@ class OpenAIClient:
         self.sdk_client = sdk_client
         self.last_usage: dict[str, int] = {}
         self.last_model = settings.openai_model
+        self.tool_results: list[dict] = []
 
     async def structured_call[ReportT: BaseModel](
         self, system: str, user: str, schema_model: type[ReportT]
@@ -91,9 +99,34 @@ class OpenAIClient:
         return schema_model.model_validate(parsed)
 
     async def tool_loop(
-        self, system: str, user: str, tools: list[dict], max_rounds: int
-    ) -> tuple[BaseModel, list[TraceStep]]:
-        raise NotImplementedError("Tool loop is implemented in stage B4")
+        self,
+        system: str,
+        user: str,
+        tools: list[dict],
+        max_rounds: int,
+        *,
+        on_trace: Callable[[TraceStep], Awaitable[None]] | None = None,
+    ) -> tuple[AnalysisReport, list[TraceStep]]:
+        from app.ai.agent import run_agent
+
+        if not self.settings.use_llm:
+            raise ProviderFailure("not_configured")
+        if max_rounds < 1:
+            raise ValueError("max_rounds must be positive")
+        self.last_usage = {}
+        self.last_model = self.settings.openai_model
+        self.tool_results = []
+        if self.sdk_client is not None:
+            return await run_agent(
+                self, self.sdk_client, system, user, tools, max_rounds, on_trace=on_trace
+            )
+        async with AsyncOpenAI(
+            api_key=self.settings.openai_api_key,
+            base_url=self.settings.openai_base_url or "https://api.openai.com/v1",
+            timeout=120.0,
+            max_retries=1,
+        ) as client:
+            return await run_agent(self, client, system, user, tools, max_rounds, on_trace=on_trace)
 
 
 class CacheClient:

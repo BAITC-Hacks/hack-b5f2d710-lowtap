@@ -203,7 +203,7 @@ def test_prompts_include_facts_catalog_and_no_unstructured_request_input():
     assert set(payload) == {"FactTable", "task"}
     assert payload["FactTable"] == [fact.model_dump() for fact in facts]
     assert payload["task"] == "Проанализируй сценарий и предложи до 3 улучшений"
-    assert PROMPT_VERSION == "1.0.0"
+    assert PROMPT_VERSION == "2.2.0"
     for district in get_catalog().districts.values():
         assert district["profile_ru"] in system
     for measure in get_catalog().measures.values():
@@ -213,3 +213,60 @@ def test_prompts_include_facts_catalog_and_no_unstructured_request_input():
     assert "evidence" in system
     assert "trace=[]" in system
     assert "city_impact" in system
+
+
+def test_generation_requires_evidence_but_guard_output_can_have_empty_evidence():
+    schema = AnalysisReport.model_json_schema(mode="validation")
+    evidence = schema["$defs"]["Claim"]["properties"]["evidence"]
+    assert evidence["minItems"] == 1
+    assert evidence["items"]["pattern"] == "^F[1-9][0-9]*$"
+    output = AnalysisReport.model_json_schema(mode="serialization")
+    assert "minItems" not in output["$defs"]["Claim"]["properties"]["evidence"]
+    assert Claim(text="Текст сохранён guard.", evidence=[]).evidence == []
+
+
+@pytest.mark.parametrize("measure_id", ["M3", "M13"])
+def test_prompt_mandatory_lag_claim_uses_selected_fact_values_and_ids(measure_id):
+    # Deliberately differ from the catalog to catch accidental hardcoded values
+    # or recomputation: the prompt must copy the engine FactTable it was given.
+    facts = [
+        Fact(id="F41", key=f"measure.{measure_id}.lag", value=3, text_ru="Лаг: 3.00."),
+        Fact(
+            id="F42",
+            key=f"measure.{measure_id}.effect_fraction",
+            value=0.625,
+            text_ru="Доля эффекта: 0.62.",
+        ),
+    ]
+    system, user = build_prompts(facts)
+    footer = system.rsplit("\n", 1)[1]
+    required = json.loads(footer)["required_lag_claims"]
+
+    assert required == [
+        {
+            "text": f"{measure_id}: лаг 3.00 квартала; доля эффекта 0.62.",
+            "evidence": ["F41", "F42"],
+        }
+    ]
+    assert "risks или consequences" in system
+    assert json.loads(user)["FactTable"] == [fact.model_dump() for fact in facts]
+
+
+def test_prompt_does_not_require_lags_of_unselected_catalog_measures():
+    system, _ = build_prompts([Fact(id="F1", key="measure.M7.lag", value=3, text_ru="Лаг: 3.00.")])
+    footer = system.rsplit("\n", 1)[1]
+    assert json.loads(footer)["required_lag_claims"] == []
+
+
+def test_prompt_requires_both_selected_long_lags_without_inventing_missing_fraction():
+    system, _ = build_prompts(
+        [
+            Fact(id="F81", key="measure.M13.lag", value=4, text_ru="Лаг: 4.00."),
+            Fact(id="F21", key="measure.M3.lag", value=4, text_ru="Лаг: 4.00."),
+        ]
+    )
+    footer = system.rsplit("\n", 1)[1]
+    assert json.loads(footer)["required_lag_claims"] == [
+        {"text": "M3: лаг 4.00 квартала.", "evidence": ["F21"]},
+        {"text": "M13: лаг 4.00 квартала.", "evidence": ["F81"]},
+    ]

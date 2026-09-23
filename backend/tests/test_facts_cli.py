@@ -5,9 +5,11 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from app import cli as app_cli
 from app.engine.catalog import get_catalog
 from app.engine.facts import build_facts
 from app.engine.models import Scenario
@@ -100,20 +102,30 @@ def cli(path, *args):
     )
 
 
-def test_cli_documented_summary_and_full_json():
+def invoke_main(path, monkeypatch, capsys, *args):
+    monkeypatch.setattr(sys, "argv", ["akim", "evaluate", str(path), *args])
+    code = 0
+    try:
+        app_cli.main()
+    except SystemExit as exc:
+        code = exc.code
+    return SimpleNamespace(returncode=code, stdout=capsys.readouterr().out)
+
+
+def test_cli_documented_summary_and_full_json(monkeypatch, capsys):
     path = ROOT / "data" / "scenarios" / "example_tz.json"
     summary = cli(path)
     assert summary.returncode == 0
     assert "Score 56.543" in summary.stdout
     assert "cost 95 | remaining 5 | n_crit 0" in summary.stdout
     assert "percentile" in summary.stdout and "%" in summary.stdout
-    document = cli(path, "--json")
+    document = invoke_main(path, monkeypatch, capsys, "--json")
     assert document.returncode == 0
     assert json.loads(document.stdout) == evaluate(preset("example_tz")).model_dump()
 
 
-def test_cli_invalid_scenario_and_broken_json_have_no_score(tmp_path):
-    result = cli(ROOT / "data" / "scenarios" / "invalid_budget.json")
+def test_cli_invalid_scenario_and_broken_json_have_no_score(tmp_path, monkeypatch, capsys):
+    result = invoke_main(ROOT / "data" / "scenarios" / "invalid_budget.json", monkeypatch, capsys)
     document = json.loads(result.stdout)
     assert result.returncode == 2
     assert document["ok"] is False
@@ -121,10 +133,10 @@ def test_cli_invalid_scenario_and_broken_json_have_no_score(tmp_path):
     assert [item["code"] for item in document["violations"]] == ["BUDGET_EXCEEDED"]
     path = tmp_path / "invalid.json"
     path.write_text('{"decisions":"x"}', encoding="utf-8")
-    result = cli(path)
+    result = invoke_main(path, monkeypatch, capsys)
     assert result.returncode == 2
     assert json.loads(result.stdout)["violations"][0]["code"] == "BAD_REQUEST"
     path.write_bytes(b"\xff")
-    result = cli(path)
+    result = invoke_main(path, monkeypatch, capsys)
     assert result.returncode == 2
     assert json.loads(result.stdout)["violations"][0]["code"] == "BAD_REQUEST"

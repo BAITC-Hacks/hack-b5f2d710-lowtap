@@ -2,7 +2,7 @@
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, WithJsonSchema
+from pydantic import BaseModel, ConfigDict, WithJsonSchema, model_validator
 
 ENGINE_VERSION = "1.0.0"
 
@@ -150,7 +150,19 @@ class Neighbor(BaseModel):
 
 class Claim(BaseModel):
     text: str
-    evidence: list[str]
+    # Generation requires evidence. Serialization still permits an empty list
+    # after the guard removes invalid IDs, as required by the API contract.
+    evidence: Annotated[
+        list[str],
+        WithJsonSchema(
+            {
+                "type": "array",
+                "items": {"type": "string", "pattern": "^F[1-9][0-9]*$"},
+                "minItems": 1,
+            },
+            mode="validation",
+        ),
+    ]
 
 
 class Recommendation(BaseModel):
@@ -206,6 +218,23 @@ class AnalysisReport(BaseModel):
     trace: list[TraceStep]
     verified_numbers: VerifiedNumbers
     cached: bool
+
+    @model_validator(mode="after")
+    def concise_text(self):
+        texts = [self.summary]
+        for section in (
+            self.strengths,
+            self.risks,
+            self.consequences,
+            self.tradeoffs,
+            self.city_impact,
+        ):
+            texts.extend(claim.text for claim in section)
+        for recommendation in self.recommendations:
+            texts.extend((recommendation.change, recommendation.rationale))
+        if sum(len(text.split()) for text in texts) > 300:
+            raise ValueError("Текстовые поля отчёта должны содержать не более 300 слов")
+        return self
 
 
 class ConfigResponse(BaseModel):

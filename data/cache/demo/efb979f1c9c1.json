@@ -1,0 +1,305 @@
+{
+  "metadata": {
+    "data_hash": "1172683703cf",
+    "engine_version": "1.0.0",
+    "scenario_id": "efb979f1c9c1",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0"
+  },
+  "report": {
+    "summary": "Сценарий улучшил Score до 56.54, закрыл 2 критических показателя Нуры.",
+    "strengths": [
+      {
+        "text": "Score вырос на 3.99 до 56.54, что лучше базового 52.56.",
+        "evidence": [
+          "F1",
+          "F2",
+          "F3"
+        ]
+      },
+      {
+        "text": "Критические пары в Нуре S1=38 и S2=35 закрыты.",
+        "evidence": [
+          "F13",
+          "F14",
+          "F15",
+          "F16"
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "text": "Лаг мер M7, M8 по 3 квартала, M10 — 1 квартал, эффект реализуется не сразу.",
+        "evidence": [
+          "F94",
+          "F100",
+          "F106"
+        ]
+      },
+      {
+        "text": "Неиспользована синергия M5+M6 в Сарыарке, что снижает потенциал улучшений экологии.",
+        "evidence": [
+          "F120"
+        ]
+      }
+    ],
+    "consequences": [
+      {
+        "text": "Индекс Нуры вырос с 49.18 до 52.96, но остается самым низким среди районов.",
+        "evidence": [
+          "F65",
+          "F66"
+        ]
+      },
+      {
+        "text": "Социальные показатели S1 и S2 в Нуре улучшились, но изначально были критичны.",
+        "evidence": [
+          "F68",
+          "F69",
+          "F71",
+          "F72"
+        ]
+      },
+      {
+        "text": "Расходы на Нуру составляют 58.95% бюджета при населении 16%, что создает дисбаланс.",
+        "evidence": [
+          "F84",
+          "F85",
+          "F86"
+        ]
+      }
+    ],
+    "tradeoffs": [
+      {
+        "text": "Выбрано ровно 5 мер, из них 3 в Нуре, что концентрирует ресурсы.",
+        "evidence": [
+          "F83"
+        ]
+      },
+      {
+        "text": "Нет мер M1 и M3, исключая конфликт, но ограничивая транспортные улучшения.",
+        "evidence": [
+          "F87"
+        ]
+      },
+      {
+        "text": "Общегородская мера M12 улучшает сервисы, но с лагом 1 квартал.",
+        "evidence": [
+          "F112"
+        ]
+      }
+    ],
+    "city_impact": [
+      {
+        "text": "Жители Нуры получают улучшенный доступ к соцуслугам и безопасности.",
+        "evidence": [
+          "F69",
+          "F72",
+          "F75",
+          "F78"
+        ]
+      },
+      {
+        "text": "Улучшение экологии и транспорта в Сарыарке и других районах ограничено.",
+        "evidence": [
+          "F40",
+          "F41",
+          "F42",
+          "F43"
+        ]
+      },
+      {
+        "text": "Баланс бюджета и распределение мер требуют корректировки для равномерного развития.",
+        "evidence": [
+          "F84",
+          "F85",
+          "F86"
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "change": "Заменить M5 (Сарыарка) на M3 (Нура) для транспорта.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          },
+          {
+            "measure_id": "M3",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M7",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          }
+        ],
+        "rationale": "Повышение Score до 57.21, полный бюджет 100 у.е.",
+        "score": 57.20556,
+        "delta": 4.64788,
+        "cost": 100,
+        "verified": true,
+        "invalid_reason": null
+      },
+      {
+        "change": "Добавить M14 (городская) вместо M5 для снижения затрат.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          },
+          {
+            "measure_id": "M14",
+            "district": null
+          },
+          {
+            "measure_id": "M7",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          }
+        ],
+        "rationale": "Снижение стоимости до 86 у.е., Score 56.99.",
+        "score": 56.98582,
+        "delta": 4.42814,
+        "cost": 86,
+        "verified": true,
+        "invalid_reason": null
+      },
+      {
+        "change": "Включить M2 (городская) вместо M5 для адаптивных светофоров.",
+        "decisions": [
+          {
+            "measure_id": "M10",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M12",
+            "district": null
+          },
+          {
+            "measure_id": "M2",
+            "district": null
+          },
+          {
+            "measure_id": "M7",
+            "district": "nura"
+          },
+          {
+            "measure_id": "M8",
+            "district": "nura"
+          }
+        ],
+        "rationale": "Улучшение транспорта, Score 56.88 при 92 у.е.",
+        "score": 56.87582,
+        "delta": 4.31814,
+        "cost": 92,
+        "verified": true,
+        "invalid_reason": null
+      }
+    ],
+    "provider": "llm",
+    "model": "gpt-4.1-mini",
+    "prompt_version": "2.2.0",
+    "trace": [
+      {
+        "n": 1,
+        "kind": "server",
+        "tool": "evaluate_scenario",
+        "input": {
+          "scenario_id": "efb979f1c9c1"
+        },
+        "output_summary": "Score 56.543; критических пар 0",
+        "ms": 136.07889999912004,
+        "ok": true
+      },
+      {
+        "n": 2,
+        "kind": "server",
+        "tool": "build_facts",
+        "input": {
+          "scenario_id": "efb979f1c9c1"
+        },
+        "output_summary": "Сформировано фактов: 120",
+        "ms": 0.39429999742424116,
+        "ok": true
+      },
+      {
+        "n": 3,
+        "kind": "agent",
+        "tool": "best_neighbors",
+        "input": {
+          "decisions": [
+            {
+              "measure_id": "M5",
+              "district": "saryarka"
+            },
+            {
+              "measure_id": "M7",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M8",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M10",
+              "district": "nura"
+            },
+            {
+              "measure_id": "M12",
+              "district": null
+            }
+          ],
+          "objective": "score",
+          "k": 3
+        },
+        "output_summary": "Проверено альтернатив: 3.",
+        "ms": 10.076300000946503,
+        "ok": true
+      },
+      {
+        "n": 4,
+        "kind": "server",
+        "tool": "agent_loop",
+        "input": {
+          "model": "gpt-4.1-mini"
+        },
+        "output_summary": "Получен отчёт агента; модель gpt-4.1-mini-2025-04-14; токены: вход 28923, выход 1688.",
+        "ms": 18378.202700001566,
+        "ok": true
+      },
+      {
+        "n": 5,
+        "kind": "server",
+        "tool": "guard_report",
+        "input": {
+          "scenario_id": "efb979f1c9c1"
+        },
+        "output_summary": "Подтверждено чисел: 10 из 10.",
+        "ms": 7.612900000822265,
+        "ok": true
+      }
+    ],
+    "verified_numbers": {
+      "total": 10,
+      "confirmed": 10,
+      "unverified": []
+    },
+    "cached": false
+  }
+}
