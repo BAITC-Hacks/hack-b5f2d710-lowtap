@@ -1,8 +1,8 @@
 """Canonical API schemas (pydantic v2)."""
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, WithJsonSchema
 
 ENGINE_VERSION = "1.0.0"
 
@@ -154,6 +154,8 @@ class Claim(BaseModel):
 
 
 class Recommendation(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
     change: str
     decisions: list[Decision]
     rationale: str
@@ -165,10 +167,20 @@ class Recommendation(BaseModel):
 
 
 class TraceStep(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
     n: int
     kind: Literal["server", "agent"]
     tool: str
-    input: dict[str, Any]
+    # The model must not author server traces. Its strict input schema permits
+    # only {}; real tool inputs remain unrestricted in the API's output schema.
+    input: Annotated[
+        dict[str, Any],
+        WithJsonSchema(
+            {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+            mode="validation",
+        ),
+    ]
     output_summary: str
     ms: float
     ok: bool

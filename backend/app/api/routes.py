@@ -1,22 +1,19 @@
 import json
-from time import perf_counter
 from typing import Literal
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app import __version__
-from app.ai.rules import RuleBasedExplainer
+from app.ai.service import analyze
 from app.engine.catalog import get_catalog
 from app.engine.distribution import load_distribution
-from app.engine.facts import build_facts
 from app.engine.models import (
     AnalysisReport,
     ConfigResponse,
     EvalResult,
     HealthResponse,
     Scenario,
-    TraceStep,
     ValidationResult,
 )
 from app.engine.scoring import evaluate, score_decisions
@@ -78,43 +75,19 @@ def report_events(report: AnalysisReport):
 @router.post(
     "/analyze", response_model=AnalysisReport, responses={422: {"model": ValidationResult}}
 )
-def analyze_scenario(
+async def analyze_scenario(
     scenario: Scenario,
+    request: Request,
     provider: Literal["auto", "rules"] = "auto",
     stream: int = Query(default=0, ge=0, le=1),
 ):
-    # Both B2 providers use deterministic rules; rules never acquire the LLM semaphore.
-    del provider
-    started = perf_counter()
-    result = evaluate(scenario)
-    evaluation_ms = (perf_counter() - started) * 1000
-    started = perf_counter()
-    facts = build_facts(scenario, result)
-    facts_ms = (perf_counter() - started) * 1000
-    report = RuleBasedExplainer().explain(scenario, result, facts)
-    report.trace = [
-        TraceStep(
-            n=1,
-            kind="server",
-            tool="evaluate_scenario",
-            input={"scenario_id": result.scenario_id},
-            output_summary=f"Score {result.score:.3f}; критических пар {result.n_crit}",
-            ms=evaluation_ms,
-            ok=True,
-        ),
-        TraceStep(
-            n=2,
-            kind="server",
-            tool="build_facts",
-            input={"scenario_id": result.scenario_id},
-            output_summary=f"Сформировано фактов: {len(facts)}",
-            ms=facts_ms,
-            ok=True,
-        ),
-        *report.trace,
-    ]
-    for index, step in enumerate(report.trace, start=1):
-        step.n = index
+    report = await analyze(
+        scenario,
+        request.app.state.settings,
+        request.app.state.analyze_semaphore,
+        provider=provider,
+        cache=request.app.state.report_cache,
+    )
     if stream:
         return StreamingResponse(
             report_events(report),

@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__
+from app.ai.cache import ReportCache
 from app.ai.probe import check_model
 from app.api.routes import router
 from app.config import WEB_DIST, Settings, data_hash
@@ -29,6 +30,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.data_hash = data_hash()
         app.state.model_status = await check_model(app.state.settings)
         app.state.analyze_semaphore = asyncio.Semaphore(app.state.settings.analyze_concurrency)
+        app.state.report_cache = ReportCache()
         # Load the exact CDF before serving requests; subsequent evaluations stay fast.
         load_distribution()
         yield
