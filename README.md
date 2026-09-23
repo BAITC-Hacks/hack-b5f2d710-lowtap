@@ -19,9 +19,29 @@
 
 ## Быстрый старт
 
-Нужны **Python 3.12+** (проверено на 3.14) и **Node.js 20+** (проверено на 24). Ключ OpenAI не обязателен.
+Ключ OpenAI не обязателен: без него анализ отдаётся из сохранённых ответов агента (5 пресетов) или по правилам.
 
-### Путь А — одно приложение на :8000 (FastAPI отдаёт собранный фронт)
+### Путь А — Docker (одна команда)
+
+Нужен Docker с Compose. PowerShell:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up --build -d --wait
+```
+
+bash:
+
+```bash
+test -f .env || cp .env.example .env
+docker compose up --build -d --wait
+```
+
+Откройте http://localhost:8000 — Пульт; Swagger — http://localhost:8000/docs. Образ сам собирает фронт (`node:24-alpine`) и запускает FastAPI (`python:3.14-slim`); остановка — `docker compose down`. Проверка собранного приложения по HTTP: `scripts/container_smoke.py` (см. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#docker-и-compose)).
+
+### Путь Б — без Docker, одно приложение на :8000 (FastAPI отдаёт собранный фронт)
+
+Нужны **Python 3.12+** (проверено на 3.14) и **Node.js 20+** (проверено на 24).
 
 PowerShell (из корня клона; активация venv не нужна):
 
@@ -45,7 +65,7 @@ cd backend && ../.venv/bin/python -m uvicorn app.main:app --port 8000
 
 Откройте http://localhost:8000 — Пульт; Swagger — http://localhost:8000/docs.
 
-### Путь Б — только фронт (без Python, всё считается в браузере)
+### Путь В — только фронт (без Python, всё считается в браузере)
 
 ```bash
 cd web
@@ -73,8 +93,9 @@ cp .env.example .env
 |---|---|---|
 | Тесты фронта и паритет двух движков | `cd web; npm test` | **142 passed**: эталоны 52.558 / 56.543 / 55.667 / 54.009 / 52.041 / 57.237, все 12 невалидных наборов дают ровно свой код, 71 кейс `golden.json` совпадает с Python до 1e-6 |
 | UI smoke (Playwright) | `cd web; npx playwright install chromium; npm run e2e` | 2 passed: «Пример ТЗ» → 56.54 и 95/100, невалидный бюджет → причина вместо Score |
-| Тесты бэкенда | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | 291 passed, 1 deselected (полный перебор — `-m slow`) |
+| Тесты бэкенда | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | 298 passed, 1 deselected (полный перебор — `-m slow`) |
 | Эталон ТЗ в CLI | `cd backend; ..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json` | `Score 56.543`, `cost 95`, `n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1` |
+| Собранный контейнер | `docker compose up --build -d --wait`, затем `python scripts/container_smoke.py` | health, 5 районов / 14 мер, 694 395 / 20 003, example 56.543 / 95 / 0, 422, SSE, HTML, 5/5 demo из кэша |
 | Бюджет не превысить | Swagger → `POST /api/evaluate` с телом `data/scenarios/invalid_budget.json` | **HTTP 422**, `BUDGET_EXCEEDED`, «превышение на 29 у.е.» |
 | AI-анализ без ключа | `POST /api/analyze` с `example_tz.json` (по умолчанию `AI_CACHE=first`) | `provider: "cache"` — сохранённый ответ агента, в трассе шаг `kind: "agent"`, `verified_numbers` 10/10; `?provider=rules` — записка по правилам, 21/21 |
 | Пресеты в UI | «Пресеты ▾» → «Пример ТЗ» / «Дешёвый» / «Невалидный: бюджет» | 56.54 / 95, 55.67 / 61 и КРИТ 1, «+29 → 129/100» и заблокированные кнопки |
