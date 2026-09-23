@@ -1,5 +1,7 @@
 # План проекта «Аким на 5 часов» — команда lowtap
 
+> Рабочий план команды на время хакатона (исторический документ: часть процесса менялась по ходу). Актуальные инструкции по запуску и проверке — `README.md` и `docs/ARCHITECTURE.md`.
+
 Спец-трек Astana Innovations. Условие: [TASK_SPEC.md](TASK_SPEC.md). Визуальный спек: [VISUAL_SPEC.md](VISUAL_SPEC.md). Репозиторий `BAITC-Hacks/hack-b5f2d710-lowtap`, ветка `main`, сдача по тегу.
 
 Цель — выиграть трек. Визуал — первоклассный приоритет с первого часа, параллельно с движком и AI, а не «после».
@@ -47,7 +49,7 @@
 
 Маппинг фиксируется в `data/districts.json` (`id`, `name_ru`, `name_kk`, `osm_relation`) в scaffold Этапа 0; в API и URL ходит только `district_id`.
 
-**Окружение.** Windows 11, git 2.55, node 24, npm 11, python 3.14, docker 29; gh CLI нет; `git user.name/email` заданы локально в репозитории (`coolbay` / `beb.kz0@gmail.com` — имя при желании поменять; у остальных участников — задать у себя); в `main` уже есть коммит `docs: add project plan and task spec` (первая версия плана и ТЗ); push работает; PowerShell 5.1 с политикой выполнения по умолчанию (Restricted).
+**Окружение.** Windows 11, git 2.55, node 24, npm 11, python 3.14, docker 29; gh CLI нет; `git user.name/email` задаются локально в репозитории у каждого участника; push работает; PowerShell 5.1 с политикой выполнения по умолчанию (Restricted).
 
 ## 2. Стек и почему (таблица + стоп-правило по фронту)
 
@@ -208,7 +210,7 @@ hackalem/
 
 1. **Каждый, локально в папке репозитория (без `--global`):**
    ```powershell
-   cd C:\Users\coolbay\hackalem
+   cd <папка-клона>
    git config user.name "Имя Фамилия"; git config user.email "email-привязанный-к-GitHub"
    git config --list --local; git remote -v
    ```

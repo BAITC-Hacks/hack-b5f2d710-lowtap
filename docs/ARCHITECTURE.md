@@ -2,6 +2,8 @@
 
 ## Состояние B5
 
+Ниже — журнал по этапам B0–B5 с историческими цифрами проверок; актуальные числа приёмки — в разделе «CI и приёмка B5» (298 backend / 143 web тестов на момент сдачи).
+
 Реализован стартовый скелет на Python 3.14: конфигурация, `/api/health`,
 CLI, pytest и Ruff. B1 добавляет детерминированный движок, валидатор,
 атрибуцию Шепли, факты, поиск соседей и полное распределение сценариев.
@@ -653,7 +655,7 @@ CI не содержит API-ключей и не обращается к LLM. �
 HTTP smoke проверяет health, конфигурацию **5 районов / 14 мер**,
 распределение **694395 / 20003**, оценку example **56.543 / 95 / 0**, ошибки 422,
 rules, порядок событий SSE, доступность HTML и **5/5** demo из кэша без ключа.
-Frontend-тесты на текущем main: **142 passed**, сборка TypeScript/Vite успешна.
+Frontend-тесты на текущем main: **143 passed**, сборка TypeScript/Vite успешна.
 Backend B5: **298 passed, 1 deselected**, Ruff check и format — без замечаний,
 **49** файлов. Команды из корня клона: `python -m pytest -q backend/tests`,
 `python -m ruff check backend scripts`, `python -m ruff format --check backend scripts`.
@@ -689,7 +691,7 @@ PYTHONUTF8=1 .venv/bin/python -m pytest -q backend/tests -m slow
 socket. Затем на Linux Engine **29.8.0** выполнены настоящие `compose build`,
 `compose up -d --wait --wait-timeout 90` и полный HTTP smoke — успешно.
 Дополнительные одноразовые Linux-контейнеры дали **298 passed, 1 deselected**
-для backend (финальный прогон 7.92 с) и **142 passed** для frontend (1.24 с).
+для backend (финальный прогон 7.92 с) и **142 passed** для frontend (после финального теста валидатора на main — 143) (1.24 с).
 После обновления карты в `33e958a` повторены сборка и Linux frontend-тесты.
 HTML-проверка подтвердила `no-cache` и одинаковый ETag в ответах 200/304.
 Проверка запускалась

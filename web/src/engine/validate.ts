@@ -34,6 +34,9 @@ export function validateDecisions(decisions: readonly Decision[]): Violation[] {
     if (measure.type === 'city') {
       if (dec.district !== null) {
         out.push(violation('DISTRICT_FORBIDDEN', `${measure.id} — городская мера, район не указывается.`, idx, [measure.id]))
+        if (!isDistrictId(dec.district)) {
+          out.push(violation('UNKNOWN_DISTRICT', `Неизвестный район «${dec.district}».`, idx, [measure.id]))
+        }
       }
     } else if (dec.district === null) {
       out.push(violation('DISTRICT_REQUIRED', `Для меры ${measure.id} нужно указать район.`, idx, [measure.id]))

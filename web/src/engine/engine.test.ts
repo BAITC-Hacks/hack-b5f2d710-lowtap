@@ -95,6 +95,17 @@ describe('validate: невалидные наборы дают ровно сво
     expect(codes).toEqual(['NOT_FIVE', 'DIRECTION_LIMIT', 'INCOMPATIBLE_M1_M3', 'BUDGET_EXCEEDED'])
   })
 
+  it('городская мера с неизвестным районом: DISTRICT_FORBIDDEN и UNKNOWN_DISTRICT, как на сервере', () => {
+    const codes = validateDecisions([
+      { measure_id: 'M7', district: 'nura' },
+      { measure_id: 'M8', district: 'nura' },
+      { measure_id: 'M10', district: 'nura' },
+      { measure_id: 'M12', district: 'xx' },
+      { measure_id: 'M5', district: 'saryarka' },
+    ]).map((v) => v.code)
+    expect(codes).toEqual(['DISTRICT_FORBIDDEN', 'UNKNOWN_DISTRICT'])
+  })
+
   it('несовместимости «в одном районе» не срабатывают в разных районах', () => {
     const base: Decision[] = [
       { measure_id: 'M12', district: null },

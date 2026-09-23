@@ -119,6 +119,8 @@ export function MapAstana({
                   onMouseEnter={interactive ? () => hover(s.id) : undefined}
                   onMouseLeave={interactive ? () => hover(null) : undefined}
                   onClick={interactive && !blocked[s.id] ? () => onDistrictClick?.(s.id) : undefined}
+                  tabIndex={interactive ? 0 : undefined}
+                  onKeyDown={interactive && !blocked[s.id] ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDistrictClick?.(s.id) } } : undefined}
                 />
               </g>
             ))}

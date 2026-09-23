@@ -40,7 +40,7 @@ export function FormulaRows({ state, base, c }: { state: EngineState; base: Engi
                   )}
                 </td>
                 <td className="w-[62px] text-right" style={{ color: r.label === '− N_crit' && r.term < 0 ? 'var(--down)' : 'var(--ink)' }}>
-                  {r.label === '− N_crit' ? `${MINUS}${fmt2(Math.abs(r.term))}` : `+${fmt2(r.term)}`}
+                  {r.label === '− N_crit' ? (r.term === 0 ? fmt2(0) : `${MINUS}${fmt2(Math.abs(r.term))}`) : `+${fmt2(r.term)}`}
                 </td>
               </tr>
             )
