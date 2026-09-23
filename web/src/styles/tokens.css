@@ -1,0 +1,131 @@
+@import 'tailwindcss';
+
+/*
+ * Токены VISUAL_SPEC §2.1. Светлая тема — демо; тёмная задана только значениями, без QA.
+ * Tailwind 4 используется только как токены и утилиты: bg-panel, text-ink-2, border-line, font-mono…
+ */
+
+:root {
+  --bg: #f2f5f7; /* «Иней» */
+  --panel: #ffffff;
+  --line: #d8dee6;
+  --ink: #0b1622;
+  --ink-2: #5b6b7c;
+  --accent: #137f96; /* «Ишим» — единственный интерактивный цвет */
+  --gold: #b8841c; /* «Байтерек» — только деньги */
+  --up: #1f8a64;
+  --down: #c2452f;
+  --paper: #fbfaf6;
+  --paper-ink: #1b2430;
+
+  /* Шкала карты, домен 40–80 фиксирован: 40–48, 48–56, 56–64, 64–72, 72+ */
+  --map-1: #dceff3;
+  --map-2: #9ed3de;
+  --map-3: #56aec1;
+  --map-4: #1f7f98;
+  --map-5: #0e5468;
+
+  /* Направления — только 3px-полоски, сегменты бюджета, полосы на пинах */
+  --dir-t: #4c7bd9;
+  --dir-e: #5c9e7a;
+  --dir-s: #c4784a;
+  --dir-b: #8a63c9;
+  --dir-c: #5f7c8a;
+
+  --ease-data: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0b1622;
+  --panel: #121d2b;
+  --line: #1e2b3a;
+  --ink: #f2f5f7;
+  --ink-2: #8a9bad;
+  --accent: #19a7c4;
+  --gold: #e0a62b;
+  --up: #2fa37a;
+  --down: #d9543f;
+  --paper: #f4f1e9;
+  --paper-ink: #1b2430;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* Дефолтная палитра Tailwind отключена: цвета — только токены проекта. */
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-accent: var(--accent);
+  --color-gold: var(--gold);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-paper: var(--paper);
+  --color-paper-ink: var(--paper-ink);
+  --color-dir-t: var(--dir-t);
+  --color-dir-e: var(--dir-e);
+  --color-dir-s: var(--dir-s);
+  --color-dir-b: var(--dir-b);
+  --color-dir-c: var(--dir-c);
+
+  --font-display: 'Unbounded Variable', 'Golos Text Variable', sans-serif;
+  --font-sans: 'Golos Text Variable', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --radius-chip: 4px;
+  --ease-data: var(--ease-data);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+/* Заголовок секции: Golos 600 11px uppercase, tracking 0.08em, --ink-2. */
+@utility caps {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+/* Все числа: JetBrains Mono с табличными цифрами. */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
