@@ -11,9 +11,9 @@
 
 ## 2. Git-правила
 
-- Никогда не коммить в `main`. Ветки по этапам: `feat/web-scaffold`, `feat/web-pult`, `feat/web-verdict`, `feat/web-timeline`, `feat/web-compare`, `docs/readme`. От свежего `main`: `git fetch origin; git switch -c feat/web-pult origin/main`.
+- В `main` попадают только squash-merge готовых этапов (см. ниже), прямых коммитов в `main` нет. Ветки по этапам: `feat/web-scaffold`, `feat/web-pult`, `feat/web-verdict`, `feat/web-timeline`, `feat/web-compare`, `docs/readme`. От свежего `main`: `git fetch origin; git switch -c feat/web-pult origin/main`.
 - Перед push: `git fetch origin; git rebase origin/main`; `cd web; npm test` и `npm run build` зелёные.
-- PR в веб-интерфейсе GitHub (`gh` нет); описание: что сделано, как проверить, скриншот. Merge — человек (squash), ветка удаляется.
+- Мержишь сама, человека не ждёшь. Условие merge: `npm test` и `npm run build` зелёные после `git rebase origin/main`. Команды: `git fetch origin; git rebase origin/main` (на своей ветке) → `git switch main; git pull --ff-only` → `git merge --squash feat/web-pult` → `git commit -m "feat(web): ... (stage F1)"` (в теле: что сделано, как проверить, скриншот в `docs/screenshots/`, вопросы) → `git push origin main` (отклонён? `git pull --ff-only` и повторить) → `git push origin --delete feat/web-pult; git branch -D feat/web-pult`. PR на GitHub не нужен. Отчёт этапа дублируй в чат человеку. Следующий этап — новая ветка от свежего `origin/main`.
 - Conventional Commits: `feat(web): map with real district boundaries`.
 - Windows 11: команды для PowerShell и bash; никаких `make`.
 

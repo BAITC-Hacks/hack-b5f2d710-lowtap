@@ -19,9 +19,18 @@
 
 ## 2. Git-правила
 
-- Никогда не коммить в `main`. Ветки: `feat/backend-engine`, `feat/backend-api`, `feat/backend-ai`, `feat/backend-agent`, `feat/backend-docker` — по одной на этап, от свежего `main` (`git fetch origin; git switch -c feat/backend-engine origin/main`).
+- В `main` попадают только squash-merge готовых этапов (см. ниже), прямых коммитов в `main` нет. Ветки: `feat/backend-engine`, `feat/backend-api`, `feat/backend-ai`, `feat/backend-agent`, `feat/backend-docker` — по одной на этап, от свежего `main` (`git fetch origin; git switch -c feat/backend-engine origin/main`).
 - Перед push: `git fetch origin; git rebase origin/main`; тесты зелёные (`cd backend; python -m pytest -q`).
-- PR создаётся в веб-интерфейсе GitHub (CLI `gh` не установлен). В описании: что сделано, как проверить (команды и ожидаемые числа), открытые вопросы. Merge делает человек (squash). После merge ветка удаляется, следующий этап — новая ветка от `main`.
+- Мержишь сам, человека не ждёшь. Условие merge: тесты зелёные и `git rebase origin/main` прошёл без конфликтов. Команды (по одному этапу за раз):
+  ```
+  git fetch origin; git rebase origin/main            # на своей ветке; тесты после rebase
+  git switch main; git pull --ff-only
+  git merge --squash feat/backend-engine
+  git commit -m "feat(engine): ... (stage B1)"        # в теле коммита: что сделано, как проверить, вопросы
+  git push origin main                                # отклонён (non-fast-forward)? git pull --ff-only и повторить
+  git push origin --delete feat/backend-engine; git branch -D feat/backend-engine
+  ```
+  Открывать PR на GitHub не нужно; если PR уже открыт, он закроется при удалении ветки. Отчёт этапа (что сделано, как проверить с ожидаемыми числами, что не сделано, вопросы) дублируй в чат человеку. Следующий этап — новая ветка от свежего `origin/main`.
 - Commit message: Conventional Commits, `feat(engine): validator with 12 codes`, `test(api): 422 shape`.
 - Секреты: только `.env` (в `.gitignore`). Ключ в код, тесты, логи и PR не попадает. Если увидел ключ в diff — убери до коммита.
 - Windows 11 у команды: команды в документации давать для PowerShell и bash; `make` не использовать; перед запуском Python ставить `PYTHONUTF8=1` в окружении; в `main.py` и `cli.py` первой строкой `sys.stdout.reconfigure(encoding="utf-8")`; JSON писать с `ensure_ascii=False`; пути через `Path(__file__).resolve().parents[2]` (не через cwd).
