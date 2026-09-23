@@ -104,7 +104,7 @@ export function computeState(decisions: readonly Decision[], opts: EngineOptions
   return summarize(raw.map((row) => row.map(clip)), synergies)
 }
 
-function clip(value: number): number {
+export function clip(value: number): number {
   return Math.min(100, Math.max(0, value))
 }
 

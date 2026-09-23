@@ -59,10 +59,10 @@ export interface DistrictResult {
   d_before: number
   d_after: number
   delta: number
-  /** 10 значений в порядке T1..C2. */
-  indicators_before: number[]
-  indicators_after: number[]
-  deltas: number[]
+  /** Показатели T1..C2 по кодам (так отдаёт бэкенд). */
+  indicators_before: Record<IndicatorCode, number>
+  indicators_after: Record<IndicatorCode, number>
+  deltas: Record<IndicatorCode, number>
 }
 
 /** Три карточки формулы: 0.7·D_avg + 0.3·min D − N_crit, текущие и базовые. */
@@ -82,6 +82,7 @@ export interface Contribution {
 }
 
 export interface WaterfallItem {
+  /** Название меры (name_ru). */
   label: string
   measure_id: string
   delta: number
@@ -199,20 +200,37 @@ export interface Health {
   version: string
 }
 
-// Форма bins/quantiles уточнится по openapi.json бэкенда; до этого — ожидаемая.
 export interface DistributionBin {
-  lo: number
-  hi: number
+  start: number
+  end: number
   count: number
 }
 
+export interface TopPlan {
+  score: number
+  cost: number
+  n_crit: number
+  scenario_id: string
+  decisions: Decision[]
+}
+
+/** data/plan_distribution.json и /api/config.distribution. */
 export interface Distribution {
   count: number
   worse_than_baseline: number
+  baseline: number
   best: number
   worst: number
   quantiles: number[]
   bins: DistributionBin[]
+  top20: TopPlan[]
+}
+
+/** Выжимка распределения для бандла (vite.config.ts → virtual:plan-distribution). */
+export interface ClientDistribution extends Omit<Distribution, 'quantiles'> {
+  data_hash: string
+  /** cum[i] — число планов со Score < start + i·step. */
+  fine: { start: number; step: number; cum: number[] }
 }
 
 export interface ApiConfig {

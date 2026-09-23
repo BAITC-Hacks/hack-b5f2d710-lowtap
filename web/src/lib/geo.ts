@@ -3,7 +3,7 @@
 
 import geojsonRaw from '@data/astana_districts.geojson?raw'
 import { geoArea, geoMercator, geoPath, type GeoPath, type GeoProjection } from 'd3-geo'
-import type { Feature, FeatureCollection, MultiPolygon, Polygon, Position } from 'geojson'
+import type { Feature, FeatureCollection, MultiLineString, MultiPolygon, Polygon, Position } from 'geojson'
 import { isDistrictId } from '../engine/catalog'
 import { DISTRICT_IDS, type DistrictId } from '../types/data'
 
@@ -59,19 +59,54 @@ export interface MapLayout {
   anchors: Record<DistrictId, [number, number]>
 }
 
-/** Меркатор, вписанный в прямоугольник с отступом (по крупнейшим полигонам — эксклавы не раздувают кадр). */
-export function fitMap(shapes: DistrictShape[], width: number, height: number, padding = 40): MapLayout {
+/** Отступ: одно число или [сверху, справа, снизу, слева]. */
+export type Padding = number | [number, number, number, number]
+
+/** Меркатор, вписанный в прямоугольник с отступом (по крупнейшим полигонам — эксклавы не уменьшают карту). */
+export function fitMap(shapes: DistrictShape[], width: number, height: number, padding: Padding = 40): MapLayout {
+  const [top, right, bottom, left] = typeof padding === 'number' ? [padding, padding, padding, padding] : padding
   const frame: FeatureCollection<Polygon> = { type: 'FeatureCollection', features: shapes.map((s) => s.main) }
   const projection = geoMercator().fitExtent(
     [
-      [padding, padding],
-      [Math.max(padding + 1, width - padding), Math.max(padding + 1, height - padding)],
+      [left, top],
+      [Math.max(left + 1, width - right), Math.max(top + 1, height - bottom)],
     ],
     frame,
   )
   const path = geoPath(projection)
   const anchors = Object.fromEntries(shapes.map((s) => [s.id, path.centroid(s.main)])) as Record<DistrictId, [number, number]>
   return { projection, path, anchors }
+}
+
+const LEFT_BANK: DistrictId[] = ['esil', 'nura']
+const RIGHT_BANK: DistrictId[] = ['almaty', 'baikonur', 'saryarka']
+
+/**
+ * Линия Ишима (Есиль): районные границы Астаны идут по реке, поэтому река — это общие
+ * рёбра левобережных районов (Есиль, Нура) с правобережными (Алматы, Байконур, Сарыарка).
+ */
+export function riverLine(shapes: DistrictShape[]): Feature<MultiLineString> {
+  const key = (p: Position) => `${p[0].toFixed(5)},${p[1].toFixed(5)}`
+  const right = new Set<string>()
+  for (const s of shapes.filter((s) => RIGHT_BANK.includes(s.id))) {
+    for (const f of [s.main, ...s.exclaves]) for (const ring of f.geometry.coordinates) for (const p of ring) right.add(key(p))
+  }
+  const lines: Position[][] = []
+  for (const s of shapes.filter((s) => LEFT_BANK.includes(s.id))) {
+    for (const ring of s.main.geometry.coordinates) {
+      let current: Position[] = []
+      for (const p of ring) {
+        if (right.has(key(p))) {
+          current.push(p)
+        } else {
+          if (current.length > 1) lines.push(current)
+          current = []
+        }
+      }
+      if (current.length > 1) lines.push(current)
+    }
+  }
+  return { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines } }
 }
 
 /** Смещения пинов у одного центроида: 0 / +26 / −26 px по x, дальше — следующий ряд. */
