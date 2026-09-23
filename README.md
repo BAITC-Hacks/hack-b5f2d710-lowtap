@@ -73,7 +73,7 @@ cp .env.example .env
 |---|---|---|
 | Тесты фронта и паритет двух движков | `cd web; npm test` | **142 passed**: эталоны 52.558 / 56.543 / 55.667 / 54.009 / 52.041 / 57.237, все 12 невалидных наборов дают ровно свой код, 71 кейс `golden.json` совпадает с Python до 1e-6 |
 | UI smoke (Playwright) | `cd web; npx playwright install chromium; npm run e2e` | 2 passed: «Пример ТЗ» → 56.54 и 95/100, невалидный бюджет → причина вместо Score |
-| Тесты бэкенда | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | 213 passed, 1 deselected (полный перебор — `-m slow`) |
+| Тесты бэкенда | `$env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe -m pytest -q backend/tests` | 291 passed, 1 deselected (полный перебор — `-m slow`) |
 | Эталон ТЗ в CLI | `cd backend; ..\.venv\Scripts\python.exe -m app.cli evaluate ../data/scenarios/example_tz.json` | `Score 56.543`, `cost 95`, `n_crit 0`, `percentile 99.918%`, `scenario_id efb979f1c9c1` |
 | Бюджет не превысить | Swagger → `POST /api/evaluate` с телом `data/scenarios/invalid_budget.json` | **HTTP 422**, `BUDGET_EXCEEDED`, «превышение на 29 у.е.» |
 | AI-анализ без ключа | `POST /api/analyze` с `example_tz.json` (по умолчанию `AI_CACHE=first`) | `provider: "cache"` — сохранённый ответ агента, в трассе шаг `kind: "agent"`, `verified_numbers` 10/10; `?provider=rules` — записка по правилам, 21/21 |

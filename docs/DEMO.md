@@ -7,7 +7,7 @@
 - Запуск одним процессом: `cd web; npm ci; npm run build`, затем из `backend/` — `uvicorn app.main:app --port 8000`, открыть http://localhost:8000 (см. README, путь А). Без сети и ключа всё работает: записка строится по правилам или по шаблону.
 - С ключом: `.env` с `OPENAI_API_KEY`, `OPENAI_MODEL` и `AI_CACHE=fallback` (живой LLM первым, кэш — страховка). Проверить `GET /api/health`: `provider=llm`, `model_status=ok`.
 - Браузер fullscreen, 1280×720 или 1366×768 (лейаут один), светлая тема. Открыть `#/pult` — «Сброс» в шапке.
-- На втором экране — README и терминал с `cd web; npm test` (142 passed) и `pytest -q backend/tests` (213 passed).
+- На втором экране — README и терминал с `cd web; npm test` (142 passed) и `pytest -q backend/tests` (291 passed).
 
 ## Сценарий
 
