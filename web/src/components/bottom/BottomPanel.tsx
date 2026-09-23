@@ -44,9 +44,9 @@ export function BottomPanel() {
 
   return (
     <section className="col-span-3 grid min-h-0 grid-cols-[264px_1fr] border-t border-line bg-panel">
-      <div className="flex min-h-0 flex-col justify-between border-r border-line px-3 py-2">
+      <div className="flex min-h-0 flex-col justify-between border-r border-line px-3 py-1.5 font-sans">
         <div className="flex items-start justify-between">
-          <div className="flex flex-col gap-0.5" role="tablist" aria-label="Нижняя панель">
+          <div className="flex flex-col" role="tablist" aria-label="Нижняя панель">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -54,15 +54,15 @@ export function BottomPanel() {
                 role="tab"
                 aria-selected={tab === t.key}
                 onClick={() => tab !== t.key && toggleTab()}
-                className="caps flex h-6 items-center border-l-2 pl-2 text-left text-[10px]"
-                style={{ borderColor: tab === t.key ? 'var(--accent)' : 'transparent', color: tab === t.key ? 'var(--ink)' : undefined }}
+                className="flex h-5 items-center border-l-2 pl-2 text-left text-[12px] font-semibold leading-none tracking-[-0.01em]"
+                style={{ borderColor: tab === t.key ? 'var(--accent)' : 'transparent', color: tab === t.key ? 'var(--ink)' : 'var(--ink-2)' }}
               >
                 {t.label}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-display text-[20px] font-medium leading-none" style={{ color: intermediate ? 'var(--accent)' : 'var(--ink)' }}>
+            <span className="text-[26px] font-semibold leading-8 tracking-[-0.04em] tabular-nums" style={{ color: intermediate ? 'var(--accent)' : 'var(--ink)' }}>
               Q{quarter}
             </span>
             <button
@@ -77,13 +77,20 @@ export function BottomPanel() {
             </button>
           </div>
         </div>
-        <p className="num text-[9px] leading-snug text-ink-2">
-          эффект × max(0, q−L)/8 · в Q8 = формула ТЗ{status === 'preliminary' ? ' · предварительно' : ''}
-          <br />
-          Space проиграть · Esc выйти · Ctrl+Z отменить · M матрица
-          <br />
-          <span title="sha256 датасета ТЗ: у всех одинаковый старт">data {DATA_HASH}</span>
-        </p>
+        <div className="space-y-0.5 text-[10.5px] leading-[13px] text-ink-2">
+          <p>
+            эффект × <span className="font-medium">max(0, q−L)/8</span> · в Q8 = формула ТЗ{status === 'preliminary' ? ' · предварительно' : ''}
+          </p>
+          <p className="grid grid-cols-2 gap-x-2">
+            <span className="whitespace-nowrap"><kbd className="font-sans font-semibold text-ink">Space</kbd> проиграть</span>
+            <span className="whitespace-nowrap"><kbd className="font-sans font-semibold text-ink">Esc</kbd> выйти</span>
+            <span className="whitespace-nowrap"><kbd className="font-sans font-semibold text-ink">Ctrl+Z</kbd> отменить</span>
+            <span className="whitespace-nowrap"><kbd className="font-sans font-semibold text-ink">M</kbd> матрица</span>
+          </p>
+          <p className="text-[10px] leading-3" title="sha256 датасета ТЗ: у всех одинаковый старт">
+            data <span className="font-mono tracking-[-0.025em]">{DATA_HASH}</span>
+          </p>
+        </div>
       </div>
       <div className="relative min-h-0 min-w-0 px-2 py-1.5">
         {tab === 'timeline' ? <Timeline points={points} decisions={decisions} /> : <IndicatorMatrix state={display} ghost={intermediate ? null : (ghost?.state ?? null)} />}
