@@ -118,7 +118,7 @@ AnalysisReport {summary, strengths: Claim[], risks: Claim[], consequences: Claim
 Цепочки по `AI_CACHE`: `first` → cache → llm → rules; `fallback` → llm → cache → rules; `0` → llm → rules. `?provider=rules` — сразу rules, мимо семафора (<50 мс). Исключения `openai.RateLimitError | APIConnectionError | APITimeoutError | APIStatusError`, `status == "incomplete"`, refusal, невалидный JSON, занятый семафор (`ANALYZE_CONCURRENCY`) → следующее звено; в `provider` пишется `rules(fallback:<причина>)`.
 Асинхронность: `AsyncOpenAI` в async-роутах (или sync-клиент в `def`-роутах), таймаут 120 с, `max_retries=1`, семафор на `/api/analyze`.
 
-**Модели:** `OPENAI_MODEL`, `OPENAI_MODEL_FAST` из `.env`. При старте (lifespan) вызывать `client.models.list()` и выставлять `model_status`; если модель не в списке — предупреждение в лог и `/api/health`, работа продолжается. Не хардкодить названия моделей в коде: только env, дефолт пустой → `provider=rules`.
+**Модели:** `OPENAI_MODEL`, `OPENAI_MODEL_FAST` из `.env`. При старте (lifespan) вызывать `client.models.list()` и выставлять `model_status`; если модель не в списке — предупреждение в лог и `/api/health`, работа продолжается. Не задавать названия моделей в коде: только env, дефолт пустой → `provider=rules`.
 
 **Инструменты агента (3, strict-схемы, enum из 5 district id):** `evaluate_scenario(decisions)` → компактный EvalResult или violations; `best_neighbors(decisions, objective ∈ {score, zero_crit, min_district, budget_cap}, k)` → k лучших соседей (замена меры / смена района, через валидатор); `compare_scenarios(a, b)`. Ошибки исполнителя → `function_call_output` с `{"error": ...}`, цикл продолжается. `MAX_TOOL_ROUNDS` из env.
 
@@ -158,7 +158,7 @@ AnalysisReport {summary, strengths: Claim[], risks: Claim[], consequences: Claim
 
 - Не менять формулу, веса, данные и правила ТЗ «для реалистичности».
 - Не позволять LLM считать: никаких промптов «посчитай Score».
-- Не хардкодить названия моделей; не логировать ключ; не коммитить `.env`.
+- Не задавать названия моделей в коде; не логировать ключ; не коммитить `.env`.
 - Не создавать `web/`, не править README и docs других зон.
 - Не вводить новые зависимости без необходимости (каждая — строка в `requirements.txt` с пином и одна фраза «зачем» в PR).
 - Не отдавать 5xx из-за LLM.

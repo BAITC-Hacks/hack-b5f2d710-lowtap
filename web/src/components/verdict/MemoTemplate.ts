@@ -83,7 +83,7 @@ function strengths(r: EvalResult, decisions: readonly Decision[]): Claim[] {
   if (weakest.delta > 0.005) {
     out.push(
       claim(
-        `Самый слабый район ${r.min_district.name_ru} подтянут: D ${fmt2(weakest.d_before)} → ${fmt2(weakest.d_after)} — это слагаемое 0.3 × min D.`,
+        `Самый слабый район ${r.min_district.name_ru} вырос: D ${fmt2(weakest.d_before)} → ${fmt2(weakest.d_after)} — это слагаемое 0.3 × min D.`,
       ),
     )
   }
@@ -119,7 +119,7 @@ function risks(r: EvalResult, decisions: readonly Decision[]): Claim[] {
   for (const d of decisions) {
     const c = r.contributions[d.measure_id]
     const m = MEASURE_BY_ID.get(d.measure_id)!
-    if (c.shapley < 0.2) out.push(claim(`${m.id} почти не двигает Score: вклад ${fmtSigned(c.shapley)} при стоимости ${m.cost} у.е.`))
+    if (c.shapley < 0.2) out.push(claim(`${m.id} почти не меняет Score: вклад ${fmtSigned(c.shapley)} при стоимости ${m.cost} у.е.`))
   }
   return out
 }
@@ -172,7 +172,7 @@ function tradeoffs(r: EvalResult, decisions: readonly Decision[]): Claim[] {
   }
   out.push(
     claim(
-      `Формула ценит равенство: слагаемое 0.3 × min D = ${fmt2(r.components.min_term)} держит ${r.min_district.name_ru}, а не самый богатый район.`,
+      `Формула поощряет равенство: слагаемое 0.3 × min D = ${fmt2(r.components.min_term)} поддерживает ${r.min_district.name_ru}, а не самый богатый район.`,
     ),
   )
   return out

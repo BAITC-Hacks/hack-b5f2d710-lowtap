@@ -80,7 +80,7 @@ export function BottomPanel() {
         <p className="num text-[9px] leading-snug text-ink-2">
           эффект × max(0, q−L)/8 · в Q8 = формула ТЗ{status === 'preliminary' ? ' · предварительно' : ''}
           <br />
-          Space play · Esc отмена · Ctrl+Z undo · M матрица
+          Space проиграть · Esc выйти · Ctrl+Z отменить · M матрица
           <br />
           <span title="sha256 датасета ТЗ: у всех одинаковый старт">data {DATA_HASH}</span>
         </p>
