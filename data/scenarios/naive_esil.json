@@ -1,0 +1,31 @@
+{
+  "name_ru": "Наивный аким: всё в Есиль",
+  "decisions": [
+    {
+      "measure_id": "M3",
+      "district": "esil"
+    },
+    {
+      "measure_id": "M7",
+      "district": "esil"
+    },
+    {
+      "measure_id": "M8",
+      "district": "esil"
+    },
+    {
+      "measure_id": "M10",
+      "district": "esil"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "score": 54.009,
+    "cost": 100,
+    "n_crit": 2
+  }
+}

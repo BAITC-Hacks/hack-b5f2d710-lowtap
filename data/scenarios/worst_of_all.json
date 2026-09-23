@@ -1,0 +1,31 @@
+{
+  "name_ru": "Худший из 694 395 допустимых наборов",
+  "decisions": [
+    {
+      "measure_id": "M8",
+      "district": "baikonur"
+    },
+    {
+      "measure_id": "M9",
+      "district": "baikonur"
+    },
+    {
+      "measure_id": "M10",
+      "district": "baikonur"
+    },
+    {
+      "measure_id": "M13",
+      "district": "baikonur"
+    },
+    {
+      "measure_id": "M11",
+      "district": "almaty"
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "score": 52.041,
+    "cost": 80,
+    "n_crit": 3
+  }
+}

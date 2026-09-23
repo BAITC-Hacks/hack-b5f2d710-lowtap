@@ -1,0 +1,27 @@
+{
+  "name_ru": "Четыре решения вместо пяти",
+  "decisions": [
+    {
+      "measure_id": "M7",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M8",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    }
+  ],
+  "expected": {
+    "valid": false,
+    "violations": [
+      "NOT_FIVE"
+    ]
+  }
+}

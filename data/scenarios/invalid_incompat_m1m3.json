@@ -1,0 +1,31 @@
+{
+  "name_ru": "BRT и ЛРТ одновременно (разные районы)",
+  "decisions": [
+    {
+      "measure_id": "M1",
+      "district": "esil"
+    },
+    {
+      "measure_id": "M3",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M8",
+      "district": "nura"
+    }
+  ],
+  "expected": {
+    "valid": false,
+    "violations": [
+      "INCOMPATIBLE_M1_M3"
+    ]
+  }
+}

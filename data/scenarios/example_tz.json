@@ -1,0 +1,31 @@
+{
+  "name_ru": "Пример из ТЗ",
+  "decisions": [
+    {
+      "measure_id": "M7",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M8",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    },
+    {
+      "measure_id": "M5",
+      "district": "saryarka"
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "score": 56.543,
+    "cost": 95,
+    "n_crit": 0
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name_ru": "Шесть решений",
+  "decisions": [
+    {
+      "measure_id": "M9",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M11",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    },
+    {
+      "measure_id": "M4",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M14",
+      "district": null
+    }
+  ],
+  "expected": {
+    "valid": false,
+    "violations": [
+      "NOT_FIVE"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# node / web
+node_modules/
+web/dist/*
+!web/dist/.gitkeep
+web/.vite/
+web/playwright-report/
+web/test-results/
+
+# runtime data
+*.db
+data/cache/*
+!data/cache/demo/
+!data/cache/eval/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log

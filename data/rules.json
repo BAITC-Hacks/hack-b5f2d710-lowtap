@@ -1,0 +1,202 @@
+{
+  "version": "1.0",
+  "budget": 100,
+  "decisions_required": 5,
+  "max_per_direction": 2,
+  "horizon_quarters": 8,
+  "critical_threshold": 40,
+  "score": {
+    "formula": "0.7 * D_avg + 0.3 * min(D_d) - 1.0 * N_crit",
+    "d_avg_weight": 0.7,
+    "min_weight": 0.3,
+    "crit_penalty": 1.0,
+    "baseline": 52.558
+  },
+  "directions": [
+    {
+      "code": "T",
+      "name_ru": "Транспорт",
+      "name_tz_ru": "транспорт",
+      "weight": 0.2
+    },
+    {
+      "code": "E",
+      "name_ru": "Экология",
+      "name_tz_ru": "озеленение",
+      "weight": 0.2
+    },
+    {
+      "code": "S",
+      "name_ru": "Соцсфера",
+      "name_tz_ru": "социальная инфраструктура",
+      "weight": 0.22
+    },
+    {
+      "code": "B",
+      "name_ru": "Безопасность",
+      "name_tz_ru": "безопасность",
+      "weight": 0.18
+    },
+    {
+      "code": "C",
+      "name_ru": "Сервисы",
+      "name_tz_ru": "городской сервис",
+      "weight": 0.2
+    }
+  ],
+  "indicators": [
+    {
+      "code": "T1",
+      "direction": "T",
+      "name_ru": "Разгрузка дорог",
+      "meaning_100": "нет пробок в час пик",
+      "meaning_0": "стоит всё",
+      "weight": 0.1
+    },
+    {
+      "code": "T2",
+      "direction": "T",
+      "name_ru": "Доступность общественного транспорта",
+      "meaning_100": "все жители в 500 м от остановки с интервалом ≤10 мин",
+      "meaning_0": "остановки и маршруты недоступны",
+      "weight": 0.1
+    },
+    {
+      "code": "E1",
+      "direction": "E",
+      "name_ru": "Озеленение",
+      "meaning_100": "≥20 м² зелени на жителя",
+      "meaning_0": "зелени нет",
+      "weight": 0.09
+    },
+    {
+      "code": "E2",
+      "direction": "E",
+      "name_ru": "Качество воздуха",
+      "meaning_100": "зимой AQI ≤50",
+      "meaning_0": "хронический смог",
+      "weight": 0.11
+    },
+    {
+      "code": "S1",
+      "direction": "S",
+      "name_ru": "Школы и детсады",
+      "meaning_100": "100% нормативной потребности, без 2-й смены",
+      "meaning_0": "острый дефицит мест",
+      "weight": 0.11
+    },
+    {
+      "code": "S2",
+      "direction": "S",
+      "name_ru": "Поликлиники и первичная медпомощь",
+      "meaning_100": "норматив на жителя выполнен полностью",
+      "meaning_0": "первичная медпомощь недоступна",
+      "weight": 0.11
+    },
+    {
+      "code": "B1",
+      "direction": "B",
+      "name_ru": "Безопасность улиц",
+      "meaning_100": "освещение и камеры везде, минимум происшествий",
+      "meaning_0": "улицы не освещены, много происшествий",
+      "weight": 0.09
+    },
+    {
+      "code": "B2",
+      "direction": "B",
+      "name_ru": "Безопасность дорожного движения",
+      "meaning_100": "минимум ДТП с пострадавшими",
+      "meaning_0": "массовые ДТП с пострадавшими",
+      "weight": 0.09
+    },
+    {
+      "code": "C1",
+      "direction": "C",
+      "name_ru": "Надёжность ЖКХ",
+      "meaning_100": "нет аварий отопления/воды за год",
+      "meaning_0": "постоянные аварии",
+      "weight": 0.1
+    },
+    {
+      "code": "C2",
+      "direction": "C",
+      "name_ru": "Скорость решения обращений жителей",
+      "meaning_100": "все обращения закрыты в срок",
+      "meaning_0": "обращения не решаются",
+      "weight": 0.1
+    }
+  ],
+  "synergies": [
+    {
+      "pair": [
+        "M1",
+        "M2"
+      ],
+      "bonus_indicator": "T1",
+      "bonus": 2,
+      "district_from": "M1"
+    },
+    {
+      "pair": [
+        "M10",
+        "M12"
+      ],
+      "bonus_indicator": "B1",
+      "bonus": 2,
+      "district_from": "M10"
+    },
+    {
+      "pair": [
+        "M5",
+        "M6"
+      ],
+      "bonus_indicator": "E2",
+      "bonus": 2,
+      "district_from": "M5"
+    }
+  ],
+  "synergy_note": "Бонус фиксированный, лагом не масштабируется, применяется в районе районной меры пары (district_from).",
+  "incompatibilities": [
+    {
+      "pair": [
+        "M1",
+        "M3"
+      ],
+      "scope": "any",
+      "code": "INCOMPATIBLE_M1_M3",
+      "reason_ru": "либо BRT, либо ЛРТ, в любом районе"
+    },
+    {
+      "pair": [
+        "M4",
+        "M7"
+      ],
+      "scope": "same_district",
+      "code": "CONFLICT_M4_M7",
+      "reason_ru": "конфликт за участок в одном районе"
+    },
+    {
+      "pair": [
+        "M5",
+        "M13"
+      ],
+      "scope": "same_district",
+      "code": "CONFLICT_M5_M13",
+      "reason_ru": "дублирование программы в одном районе"
+    }
+  ],
+  "validation_codes": [
+    "NOT_FIVE",
+    "DUPLICATE",
+    "UNKNOWN_MEASURE",
+    "UNKNOWN_DISTRICT",
+    "DISTRICT_REQUIRED",
+    "DISTRICT_FORBIDDEN",
+    "DIRECTION_LIMIT",
+    "INCOMPATIBLE_M1_M3",
+    "CONFLICT_M4_M7",
+    "CONFLICT_M5_M13",
+    "BUDGET_EXCEEDED",
+    "BAD_REQUEST"
+  ]
+}

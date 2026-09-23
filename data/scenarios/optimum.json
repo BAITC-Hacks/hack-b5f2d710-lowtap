@@ -1,0 +1,31 @@
+{
+  "name_ru": "Оптимум по полному перебору",
+  "decisions": [
+    {
+      "measure_id": "M2",
+      "district": null
+    },
+    {
+      "measure_id": "M3",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M8",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M9",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M14",
+      "district": null
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "score": 57.237,
+    "cost": 98,
+    "n_crit": 0
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name_ru": "Самый дешёвый допустимый набор",
+  "decisions": [
+    {
+      "measure_id": "M9",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M11",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    },
+    {
+      "measure_id": "M4",
+      "district": "nura"
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "score": 55.667,
+    "cost": 61,
+    "n_crit": 1
+  }
+}

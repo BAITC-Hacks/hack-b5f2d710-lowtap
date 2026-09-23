@@ -1,0 +1,31 @@
+{
+  "name_ru": "Чистое топливо и теплосети в одном районе",
+  "decisions": [
+    {
+      "measure_id": "M5",
+      "district": "saryarka"
+    },
+    {
+      "measure_id": "M13",
+      "district": "saryarka"
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    },
+    {
+      "measure_id": "M9",
+      "district": "nura"
+    }
+  ],
+  "expected": {
+    "valid": false,
+    "violations": [
+      "CONFLICT_M5_M13"
+    ]
+  }
+}

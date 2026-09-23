@@ -1,0 +1,31 @@
+{
+  "name_ru": "Три меры одного направления",
+  "decisions": [
+    {
+      "measure_id": "M4",
+      "district": "esil"
+    },
+    {
+      "measure_id": "M5",
+      "district": "saryarka"
+    },
+    {
+      "measure_id": "M6",
+      "district": null
+    },
+    {
+      "measure_id": "M12",
+      "district": null
+    },
+    {
+      "measure_id": "M10",
+      "district": "nura"
+    }
+  ],
+  "expected": {
+    "valid": false,
+    "violations": [
+      "DIRECTION_LIMIT"
+    ]
+  }
+}
