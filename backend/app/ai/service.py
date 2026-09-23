@@ -20,6 +20,8 @@ from app.engine.models import AnalysisReport, Scenario, TraceStep
 from app.engine.scoring import evaluate
 from app.engine.validator import validate
 
+AI_TIMEOUT_SECONDS = 120.0
+
 
 def _recommendations_improve(report: AnalysisReport, original_score: float) -> bool:
     """An improvement is determined by complete decisions, never model numbers."""
@@ -55,7 +57,7 @@ def failure_reason(exc: Exception) -> str:
         return exc.reason
     if isinstance(exc, RateLimitError):
         return "rate_limit"
-    if isinstance(exc, APITimeoutError):
+    if isinstance(exc, (APITimeoutError, TimeoutError)):
         return "timeout"
     if isinstance(exc, APIConnectionError):
         return "connection"
@@ -169,94 +171,100 @@ async def analyze(
         else:
             await semaphore.acquire()
             try:
-                client = OpenAIClient(settings)
-                system, user = build_prompts(facts)
-                report, _ = await client.tool_loop(
-                    system, user, TOOLS, settings.max_tool_rounds, on_trace=emit
-                )
-                report = AnalysisReport.model_validate(report.model_dump())
-                tool_results.extend(client.tool_results)
-                if await run_in_threadpool(_needs_revision, report, facts, result.score):
-                    # One bounded revision uses server results, never silently
-                    # edits the model's decision arrays or claims. Guard still
-                    # runs below even when this revised draft remains imperfect.
-                    revision_started = perf_counter()
-                    alternatives = await run_in_threadpool(
-                        ToolExecutor().execute,
-                        "best_neighbors",
-                        {**scenario.model_dump(), "objective": "score", "k": 3},
-                    )
-                    alternatives["neighbors"] = [
-                        item
-                        for item in alternatives.get("neighbors", [])
-                        if item["score"] > result.score
-                    ]
-                    tool_results.append(alternatives)
-                    await emit(
-                        TraceStep(
-                            n=0,
-                            kind="server",
-                            tool="best_neighbors",
-                            input={**scenario.model_dump(), "objective": "score", "k": 3},
-                            output_summary=(
-                                "Требуется исправить ограничения, evidence или отсутствие "
-                                "улучшения; подготовлены допустимые улучшения."
-                            ),
-                            ms=(perf_counter() - revision_started) * 1000,
-                            ok=True,
-                        )
-                    )
-                    revision_user = json.loads(user)
-                    revision_user["verified_alternatives"] = alternatives
-                    revision_user["task"] = (
-                        "Сформируй исправленный краткий отчёт. Для каждого утверждения обязательны "
-                        "существующие F-id из FactTable. Рекомендации выбирай ТОЛЬКО из "
-                        "verified_alternatives: скопируй весь массив decisions одного варианта "
-                        "без изменений; не смешивай разные варианты. Эти варианты проверены "
-                        "серверным инструментом и строго улучшают Score исходного сценария. "
-                        "Если verified_alternatives.neighbors пуст, верни recommendations=[]: "
-                        "не предлагай ухудшения или равноценные замены. "
-                        "Сохрани обязательные замечания о Нуре и лагах."
-                    )
-                    previous_usage = dict(client.last_usage)
-                    report = await client.structured_call(
-                        system, json.dumps(revision_user, ensure_ascii=False), AnalysisReport
+                # One deadline covers all rounds, SDK retries and the single
+                # revision. Leave time for guard/fallback before the UI cancels
+                # the complete request after 130 seconds. External task
+                # cancellation still propagates and releases the semaphore.
+                async with asyncio.timeout(AI_TIMEOUT_SECONDS):
+                    client = OpenAIClient(settings)
+                    system, user = build_prompts(facts)
+                    report, _ = await client.tool_loop(
+                        system, user, TOOLS, settings.max_tool_rounds, on_trace=emit
                     )
                     report = AnalysisReport.model_validate(report.model_dump())
-                    for name, value in previous_usage.items():
-                        client.last_usage[name] = client.last_usage.get(name, 0) + value
-                    improved = await run_in_threadpool(
-                        _recommendations_improve, report, result.score
-                    )
-                    await emit(
-                        TraceStep(
-                            n=0,
-                            kind="server",
-                            tool="revise_report",
-                            input={"attempt": 1},
-                            output_summary=(
-                                "Получена исправленная версия; далее общий guard."
-                                if improved
-                                else "Исправленные рекомендации не улучшают исходный план."
-                            ),
-                            ms=(perf_counter() - revision_started) * 1000,
-                            ok=improved,
+                    tool_results.extend(client.tool_results)
+                    if await run_in_threadpool(_needs_revision, report, facts, result.score):
+                        # One bounded revision uses server results, never silently
+                        # edits the model's decision arrays or claims. Guard still
+                        # runs below even when this revised draft remains imperfect.
+                        revision_started = perf_counter()
+                        alternatives = await run_in_threadpool(
+                            ToolExecutor().execute,
+                            "best_neighbors",
+                            {**scenario.model_dump(), "objective": "score", "k": 3},
                         )
+                        alternatives["neighbors"] = [
+                            item
+                            for item in alternatives.get("neighbors", [])
+                            if item["score"] > result.score
+                        ]
+                        tool_results.append(alternatives)
+                        await emit(
+                            TraceStep(
+                                n=0,
+                                kind="server",
+                                tool="best_neighbors",
+                                input={**scenario.model_dump(), "objective": "score", "k": 3},
+                                output_summary=(
+                                    "Требуется исправить ограничения, evidence или отсутствие "
+                                    "улучшения; подготовлены допустимые улучшения."
+                                ),
+                                ms=(perf_counter() - revision_started) * 1000,
+                                ok=True,
+                            )
+                        )
+                        revision_user = json.loads(user)
+                        revision_user["verified_alternatives"] = alternatives
+                        revision_user["task"] = (
+                            "Сформируй исправленный краткий отчёт. "
+                            "Для каждого утверждения обязательны "
+                            "существующие F-id из FactTable. Рекомендации выбирай ТОЛЬКО из "
+                            "verified_alternatives: скопируй весь массив decisions одного варианта "
+                            "без изменений; не смешивай разные варианты. Эти варианты проверены "
+                            "серверным инструментом и строго улучшают Score исходного сценария. "
+                            "Если verified_alternatives.neighbors пуст, верни recommendations=[]: "
+                            "не предлагай ухудшения или равноценные замены. "
+                            "Сохрани обязательные замечания о Нуре и лагах."
+                        )
+                        previous_usage = dict(client.last_usage)
+                        report = await client.structured_call(
+                            system, json.dumps(revision_user, ensure_ascii=False), AnalysisReport
+                        )
+                        report = AnalysisReport.model_validate(report.model_dump())
+                        for name, value in previous_usage.items():
+                            client.last_usage[name] = client.last_usage.get(name, 0) + value
+                        improved = await run_in_threadpool(
+                            _recommendations_improve, report, result.score
+                        )
+                        await emit(
+                            TraceStep(
+                                n=0,
+                                kind="server",
+                                tool="revise_report",
+                                input={"attempt": 1},
+                                output_summary=(
+                                    "Получена исправленная версия; далее общий guard."
+                                    if improved
+                                    else "Исправленные рекомендации не улучшают исходный план."
+                                ),
+                                ms=(perf_counter() - revision_started) * 1000,
+                                ok=improved,
+                            )
+                        )
+                        if not improved:
+                            raise ProviderFailure("non_improving_recommendation")
+                    usage = client.last_usage
+                    completed_summary = (
+                        f"Получен отчёт агента; модель {client.last_model}; "
+                        f"токены: вход {usage.get('input_tokens', 0)}, "
+                        f"выход {usage.get('output_tokens', 0)}."
                     )
-                    if not improved:
-                        raise ProviderFailure("non_improving_recommendation")
-                usage = client.last_usage
-                completed_summary = (
-                    f"Получен отчёт агента; модель {client.last_model}; "
-                    f"токены: вход {usage.get('input_tokens', 0)}, "
-                    f"выход {usage.get('output_tokens', 0)}."
-                )
-                # All operational metadata is assigned by the server.
-                report.provider = "llm"
-                report.model = settings.openai_model
-                report.prompt_version = PROMPT_VERSION
-                report.cached = False
-                report.trace = []
+                    # All operational metadata is assigned by the server.
+                    report.provider = "llm"
+                    report.model = settings.openai_model
+                    report.prompt_version = PROMPT_VERSION
+                    report.cached = False
+                    report.trace = []
             except Exception as exc:
                 reason = failure_reason(exc)
                 report = None

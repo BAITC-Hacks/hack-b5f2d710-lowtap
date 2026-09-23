@@ -5,13 +5,15 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import asyncio
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Scope
 
 from app import __version__
 from app.ai.cache import ReportCache
@@ -21,6 +23,21 @@ from app.config import WEB_DIST, Settings, data_hash
 from app.engine.distribution import load_distribution
 from app.engine.models import ValidationResult, Violation
 from app.engine.scoring import InvalidScenario
+
+
+class FrontendStaticFiles(StaticFiles):
+    def file_response(
+        self,
+        full_path: str | os.PathLike[str],
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        if os.fspath(full_path).lower().endswith((".html", ".htm")):
+            # Revalidate the entry point after deployment, including conditional 304s.
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -70,8 +87,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return JSONResponse(status_code=422, content=result.model_dump())
 
     app.include_router(router)
-    if WEB_DIST.is_dir():
-        app.mount("/", StaticFiles(directory=WEB_DIST, html=True), name="frontend")
+
+    @app.get("/api/openapi.json", include_in_schema=False)
+    def api_schema():
+        return app.openapi()
+
+    if (WEB_DIST / "index.html").is_file():
+        app.mount("/", FrontendStaticFiles(directory=WEB_DIST, html=True), name="frontend")
     else:
 
         @app.get("/", include_in_schema=False)

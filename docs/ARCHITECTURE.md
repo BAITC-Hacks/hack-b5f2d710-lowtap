@@ -1,6 +1,6 @@
 # Бэкенд «Аким на 5 часов»
 
-## Состояние B4
+## Состояние B5
 
 Реализован стартовый скелет на Python 3.14: конфигурация, `/api/health`,
 CLI, pytest и Ruff. B1 добавляет детерминированный движок, валидатор,
@@ -8,7 +8,7 @@ CLI, pytest и Ruff. B1 добавляет детерминированный д
 B2 добавляет API сценариев, объяснения по правилам, golden и StaticFiles.
 B3 добавляет structured-вызов OpenAI, общий guard и кэш с переходом к rules.
 B4 добавляет цикл инструментов, живой SSE, demo-кэш и mini-eval.
-Docker и CI — этап B5.
+B5 добавляет единый Docker-образ, Compose, CI и HTTP-проверку собранного приложения.
 
 `backend/app/config.py` определяет корень через
 `Path(__file__).resolve().parents[2]`. Каталоги данных и `.env` разрешаются
@@ -71,7 +71,8 @@ curl -fsS http://localhost:8000/api/health
 `ai_cache="first"`, `model=""`, `model_fast=""`, `has_key=false`,
 `model_status="unchecked"`, `data_hash` (12 hex), `version="0.1.0"`.
 Значения выше относятся к запуску без `.env` и без экспортированных AI-настроек.
-Swagger доступен на `/docs`, схема FastAPI — на `/openapi.json`.
+Swagger доступен на `/docs`, схема FastAPI — на `/openapi.json` и
+`/api/openapi.json` (последний путь используется `npm run gen:api`).
 
 ## Настройки
 
@@ -84,13 +85,13 @@ Swagger доступен на `/docs`, схема FastAPI — на `/openapi.jso
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
 | `OPENAI_API_KEY` | пусто | Ключ; health сообщает только `has_key` |
-| `OPENAI_MODEL` | пусто | Основная модель; пустое значение означает rules |
+| `OPENAI_MODEL` | пусто | Основная модель; пустое значение отключает живой LLM, demo-кэш доступен |
 | `OPENAI_MODEL_FAST` | пусто | Быстрая модель для последующих этапов |
 | `OPENAI_BASE_URL` | пусто | Пустое значение оставляет стандартный URL SDK |
 | `AI_PROVIDER` | `auto` | `auto`, `llm`, `rules`; rules отключает проверку OpenAI |
-| `AI_CACHE` | `first` | `first`, `fallback`, `0`; кэш реализуется в B3 |
-| `MAX_TOOL_ROUNDS` | `6` | Положительный лимит раундов для B4 |
-| `ANALYZE_CONCURRENCY` | `2` | Положительный лимит параллельности для B4 |
+| `AI_CACHE` | `first` | `first`: cache → llm → rules; `fallback`: llm → cache → rules; `0`: llm → rules |
+| `MAX_TOOL_ROUNDS` | `6` | Положительный лимит раундов вызова инструментов |
+| `ANALYZE_CONCURRENCY` | `2` | Максимум одновременно выполняющихся LLM-анализов |
 
 Если выбрана LLM и заданы ключ и основная модель, lifespan проверяет
 `AsyncOpenAI.models.list()` с таймаутом 120 с и `max_retries=1`.
@@ -552,3 +553,154 @@ Guard не является семантической проверкой каж
 Повторный mini-eval с пустыми ключом и моделью дал **5/5 provider=cache**;
 отдельный rules-прогон — **5/5**. Результаты: `live.jsonl`, `offline.jsonl`,
 `rules.jsonl` в `data/cache/eval/`.
+
+## Архитектура приложения
+
+```mermaid
+flowchart TD
+    UI[React / Vite] --> API[FastAPI]
+    API --> V[Валидатор сценария]
+    V --> E[Детерминированный движок]
+    E --> F[FactTable F1…Fn]
+    F --> P[Выбор провайдера]
+    P --> C[Версионный кэш]
+    P --> L[OpenAI Responses: инструментальный цикл]
+    P --> R[Объяснение по правилам]
+    L --> T[evaluate / neighbors / compare]
+    T --> E
+    C --> G[Общий guard]
+    L --> G
+    R --> G
+    G --> O[JSON или SSE: trace → report → done]
+    O --> UI
+```
+
+`POST /api/analyze` сначала проверяет структуру и все ограничения. Невалидный
+сценарий получает 422 до SSE-заголовков. Для валидного сценария сервер считает
+оценку, строит факты и выбирает провайдера. Кэш привязан к сценарию, модели,
+версии промпта, движка и данных. При cache miss модель получает только факты
+и фиксированный каталог; результаты инструментов формирует Python-движок.
+Занятый семафор сразу включает fallback. Полный участок работы LLM, включая
+единственную коррекцию, ограничен 120 секундами: после timeout сервер ещё
+успевает вернуть кэш или rules до клиентского ограничения в 130 секунд.
+Каждый завершённый шаг отправляется в SSE; финальный отчёт выходит после guard.
+Отключение клиента отменяет задачу и освобождает семафор.
+
+| Что вычисляет движок / сервер | Что делает LLM |
+|---|---|
+| Допустимость, бюджет, направления, конфликты | Объясняет достоинства, риски и компромиссы |
+| Эффекты, лаги, clip, синергии, Score, критичность | Выбирает инструменты для проверки альтернатив |
+| Шепли, LOO, таймлайн, перцентиль | Описывает последствия для жителей |
+| Числа альтернатив и проверка улучшения | Ссылается на F-id; возвращает структурированный текст |
+| Повторная проверка рекомендаций и десятичных чисел | Не является источником расчётов и не задаёт server trace |
+
+## Docker и Compose
+
+`Dockerfile` сначала собирает фронтенд на `node:24-alpine`, сохраняя соседство
+`web/` и `data/`. Без `web/package.json` этот шаг пропускается. Финальный образ
+`python:3.14-slim` содержит приложение, данные, пять demo-отчётов и `web/dist`.
+Корневой `.env` и runtime-кэш не копируются в образ. Uvicorn слушает порт 8000,
+healthcheck использует Python stdlib. Compose подставляет `.env` и подключает
+`./data/cache:/app/data/cache`, сохраняя ответы между перезапусками.
+
+PowerShell, из корня клона:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose config --quiet
+docker compose up --build -d --wait
+Invoke-RestMethod http://localhost:8000/api/health
+$env:PYTHONUTF8='1'
+py -3.14 scripts/container_smoke.py
+# После демонстрации:
+docker compose down
+```
+
+Bash:
+
+```bash
+test -f .env || cp .env.example .env
+docker compose config --quiet
+docker compose up --build -d --wait
+curl -fsS http://localhost:8000/api/health
+PYTHONUTF8=1 python3.14 scripts/container_smoke.py
+# После демонстрации:
+docker compose down
+```
+
+Smoke-команда предназначена для чистой конфигурации без ключа, как в CI.
+Обычный `/api/health` при настроенном ключе может сообщать `provider=llm`.
+Интерфейс доступен на `http://localhost:8000/`; если `index.html` ещё не собран,
+корень возвращает JSON-подсказку, в том числе при наличии пустого `web/dist`.
+API и Swagger регистрируются перед StaticFiles и остаются доступны.
+HTML отдаётся с `Cache-Control: no-cache`, включая условные ответы 304:
+после пересборки браузер перевалидирует index и получает актуальные имена
+динамических JS-модулей. Уже открытый экран после смены сборки нужно обновить.
+Путь через venv выше работает без Docker. Для совместного локального запуска
+сначала выполните `npm ci` и `npm run build` из `web`, затем запустите uvicorn.
+
+## CI и приёмка B5
+
+`.github/workflows/ci.yml` запускается на push и pull_request. Python 3.14
+проверяет pytest без slow, Ruff lint и форматирование; Node 24 выполняет
+`npm ci`, `npm test`, `npm run build`, если есть фронтенд. После этих проверок
+отдельный Linux job собирает и запускает Compose и выполняет HTTP smoke.
+CI не содержит API-ключей и не обращается к LLM. Настройка actions сверена с
+официальными [checkout](https://github.com/actions/checkout),
+[setup-python](https://github.com/actions/setup-python) и
+[setup-node](https://github.com/actions/setup-node).
+
+HTTP smoke проверяет health, конфигурацию **5 районов / 14 мер**,
+распределение **694395 / 20003**, оценку example **56.543 / 95 / 0**, ошибки 422,
+rules, порядок событий SSE, доступность HTML и **5/5** demo из кэша без ключа.
+Frontend-тесты на текущем main: **142 passed**, сборка TypeScript/Vite успешна.
+Backend B5: **298 passed, 1 deselected**, Ruff check и format — без замечаний,
+**49** файлов. Команды из корня клона: `python -m pytest -q backend/tests`,
+`python -m ruff check backend scripts`, `python -m ruff format --check backend scripts`.
+Используйте Python из venv и задайте `PYTHONUTF8=1`, как в командах выше.
+Полный перебор остаётся отдельной явной проверкой:
+
+```powershell
+$env:PYTHONUTF8='1'
+.\.venv\Scripts\python.exe -m pytest -q backend/tests -m slow
+```
+
+```bash
+PYTHONUTF8=1 .venv/bin/python -m pytest -q backend/tests -m slow
+```
+
+Ожидается один slow-тест с теми же **694395** валидными наборами,
+**20003** ниже базы и максимумом **57.236735**. SQLite, shocks/events и stress
+не входят в B0–B5 и не начаты из-за ограничения времени.
+
+Фактическая проверка чистого клона на Windows 23.09.2026: новый `git clone`,
+новый venv CPython 3.14.7, установка всех пинов, `pip check`, **298** тестов
+и Ruff прошли. Uvicorn из клона без `.env` вернул health **200**, JSON-подсказку
+для несобранного интерфейса, OpenAPI по обоим путям и настоящий demo-отчёт
+`provider=cache` без ключа. Рабочий клон дополнительно прошёл весь HTTP smoke
+со статикой, SSE и пятью demo.
+
+Первый [запуск CI](https://github.com/BAITC-Hacks/hack-b5f2d710-lowtap/actions/runs/35854440853)
+не получил runners: GitHub сообщил блокировку аккаунта из-за billing.
+Это не результат выполнения тестов; локальные проверки не выдаются за зелёный CI.
+Владельцу организации нужно устранить блокировку и повторить запуск workflow.
+
+Локальный Docker был восстановлен пользователем после ошибки старого runtime
+socket. Затем на Linux Engine **29.8.0** выполнены настоящие `compose build`,
+`compose up -d --wait --wait-timeout 90` и полный HTTP smoke — успешно.
+Дополнительные одноразовые Linux-контейнеры дали **298 passed, 1 deselected**
+для backend (финальный прогон 7.92 с) и **142 passed** для frontend (1.24 с).
+После обновления карты в `33e958a` повторены сборка и Linux frontend-тесты.
+HTML-проверка подтвердила `no-cache` и одинаковый ETag в ответах 200/304.
+Проверка запускалась
+с отдельным Compose project и пустыми AI-переменными в локальном override;
+исходный `.env` не перезаписывался, уже работавшие Supabase-контейнеры не затронуты.
+Браузерная проверка подтвердила интерфейс, example **56.54 / 95**, ответ
+`cache` с моделью `gpt-4.1-mini`, настоящий agent trace и **10/10** чисел.
+Таким образом контейнерная приёмка пройдена локально; ограничение GitHub
+Actions по billing остаётся отдельным внешним вопросом.
+
+Для локального запуска с добавленным пользователем ключом пустой
+`OPENAI_MODEL` в игнорируемом `.env` заполнен проверенным `gpt-4.1-mini`.
+Ключ не изменялся и не выводился. Это локальная настройка, а не дефолт кода:
+чистый клон по-прежнему работает через demo-кэш/rules без секретов.

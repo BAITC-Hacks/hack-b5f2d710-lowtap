@@ -217,8 +217,13 @@ def test_dev_cors_accepts_frontend_preflight_and_actual_request(client):
     assert response.headers["access-control-allow-origin"] == origin
 
 
-def test_missing_frontend_build_returns_json_hint(tmp_path, monkeypatch):
-    monkeypatch.setattr(app_main, "WEB_DIST", tmp_path / "missing")
+@pytest.mark.parametrize("empty_directory", [False, True])
+def test_missing_frontend_build_returns_json_hint(tmp_path, monkeypatch, empty_directory):
+    target = tmp_path / "dist"
+    if empty_directory:
+        target.mkdir()
+        (target / ".gitkeep").touch()
+    monkeypatch.setattr(app_main, "WEB_DIST", target)
     with TestClient(app_main.create_app(Settings(ai_provider="rules"))) as client:
         response = client.get("/")
         assert response.status_code == 200
@@ -230,16 +235,32 @@ def test_missing_frontend_build_returns_json_hint(tmp_path, monkeypatch):
 
 def test_frontend_static_mount_does_not_shadow_api_or_docs(tmp_path, monkeypatch):
     (tmp_path / "index.html").write_text("<html>B2_TEST_FRONTEND</html>", encoding="utf-8")
-    (tmp_path / "bundle.js").write_text("window.b2 = true;", encoding="utf-8")
+    (tmp_path / "bundle-abcd1234.js").write_text("window.b2 = true;", encoding="utf-8")
     monkeypatch.setattr(app_main, "WEB_DIST", tmp_path)
     with TestClient(app_main.create_app(Settings(ai_provider="rules"))) as client:
-        assert "B2_TEST_FRONTEND" in client.get("/").text
-        assert client.get("/bundle.js").text == "window.b2 = true;"
+        for path in ("/", "/index.html"):
+            response = client.get(path)
+            assert response.status_code == 200
+            assert "B2_TEST_FRONTEND" in response.text
+            assert response.headers["cache-control"] == "no-cache"
+            conditional = client.get(path, headers={"If-None-Match": response.headers["etag"]})
+            assert conditional.status_code == 304
+            assert conditional.headers["cache-control"] == "no-cache"
+            assert conditional.headers["etag"] == response.headers["etag"]
+        script = client.get("/bundle-abcd1234.js")
+        assert script.text == "window.b2 = true;"
+        assert "cache-control" not in script.headers
+        script_conditional = client.get(
+            "/bundle-abcd1234.js", headers={"If-None-Match": script.headers["etag"]}
+        )
+        assert script_conditional.status_code == 304
+        assert "cache-control" not in script_conditional.headers
         assert client.get("/api/health").json()["status"] == "ok"
         assert client.get("/api/config").status_code == 200
         assert client.post("/api/evaluate", json=scenario_body()).status_code == 200
         assert client.get("/docs").status_code == 200
         schema = client.get("/openapi.json").json()
+        assert client.get("/api/openapi.json").json() == schema
         assert "/api/evaluate" in schema["paths"]
         assert "/api/analyze" in schema["paths"]
         for path in ("/api/validate", "/api/evaluate", "/api/analyze"):
